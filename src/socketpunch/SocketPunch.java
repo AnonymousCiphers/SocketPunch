@@ -315,7 +315,7 @@ public class SocketPunch extends Application {
         @Override
         public Node itemConverter(File item) {
             String hex="";
-            RandomAccessFile raf;
+            RandomAccessFile raf = null;
             try {
                 raf = new RandomAccessFile(item, "r");
                 raf.seek(0x2C20);
@@ -338,6 +338,13 @@ public class SocketPunch extends Application {
                 Logger.getLogger(SocketPunch.class.getName()).log(Level.SEVERE, null, ex);
             } catch (IOException ex) {
                 Logger.getLogger(SocketPunch.class.getName()).log(Level.SEVERE, null, ex);
+            }
+            finally{
+                try {
+                    raf.close();
+                } catch (IOException ex) {
+                    Logger.getLogger(SocketPunch.class.getName()).log(Level.SEVERE, null, ex);
+                }
             }
              // Goes to 400th byte.
             
