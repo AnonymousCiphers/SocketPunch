@@ -35,6 +35,7 @@ import com.olmectron.material.files.TextFile;
 import com.olmectron.material.layouts.MaterialPane;
 import com.olmectron.material.utils.BackgroundTask;
 import java.io.BufferedWriter;
+import java.io.ByteArrayInputStream;
 import java.io.DataOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
@@ -42,6 +43,7 @@ import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.io.RandomAccessFile;
 import java.io.Reader;
 import java.net.InetAddress;
 import java.net.Socket;
@@ -284,7 +286,7 @@ public class SocketPunch extends Application {
         }
 
     public Pane initAll(Stage st) {
-        st.setTitle("SocketPunch mod v0.6");
+        st.setTitle("SocketPunch mod v0.7");
         StackPane root = new StackPane();
         
         queueList=new MaterialStandardList<File>(root) {
@@ -312,9 +314,38 @@ public class SocketPunch extends Application {
         
         @Override
         public Node itemConverter(File item) {
+            String hex="";
+            RandomAccessFile raf;
+            try {
+                raf = new RandomAccessFile(item, "r");
+                raf.seek(0x2C20);
+                
+                for(int i=0;i<4;i++){
+                    int part=raf.readByte();
+                    if(part<0){
+                        part= part & 0xff;
+                    }
+                    String hexPart=Integer.toHexString(part);
+                    if(hexPart.length()==1 && i>0){
+                        hexPart="0"+hexPart;
+                    }
+                    hex=hex+hexPart;
+                }
+                if(hex.endsWith("00")){
+                    hex=hex.substring(0,hex.length()-2);
+                }
+            } catch (FileNotFoundException ex) {
+                Logger.getLogger(SocketPunch.class.getName()).log(Level.SEVERE, null, ex);
+            } catch (IOException ex) {
+                Logger.getLogger(SocketPunch.class.getName()).log(Level.SEVERE, null, ex);
+            }
+             // Goes to 400th byte.
+            
             MaterialCard card=new MaterialCard();
             
+            
             MaterialDisplayText texto=new MaterialDisplayText(item.getName());
+            //MaterialTooltip tooltip=new MaterialTooltip(item.getName(),texto);
             texto.setAlignment(Pos.CENTER_LEFT);
             card.activateShadow(1);
             texto.setColorCode(MaterialColor.material.BLACK_87);
@@ -342,6 +373,10 @@ public class SocketPunch extends Application {
             
             progText.setFontWeight(FontWeight.MEDIUM);
             progText.setId("progresoTexto");
+            MaterialDisplayText hexText=new MaterialDisplayText("Initial code: 0x"+hex.toUpperCase());
+            //hexText.setMinWidth(62);
+            hexText.setFontSize(12);
+            hexText.setColorCode(MaterialColor.material.BLACK_54);
             HBox box=new HBox(texto,spanBox,progText);
             card.setCardPadding(new Insets(16));
             MaterialProgressBar ciaBar = new MaterialProgressBar(0.0f);
@@ -365,7 +400,7 @@ public class SocketPunch extends Application {
             progBox.setPadding(new Insets(8,0,4,0));
             VBox speedBox=new VBox(speedText);
             //box.setPrefWidth(1000);
-            card.addComponent(new VBox(box,progBox,speedBox));
+            card.addComponent(new VBox(hexText, box,progBox,speedBox));
             box.setAlignment(Pos.CENTER_LEFT);
             card.setPadding(new Insets(3,4,5,4));
             root.widthProperty().addListener(new ChangeListener<Number>(){
@@ -420,7 +455,7 @@ public class SocketPunch extends Application {
         }
         // Print some stoof
         consoleWrite("==============================", false);
-        consoleWrite("         SocketPunch mod v0.6 by Olmectron", false);
+        consoleWrite("         SocketPunch mod v0.7 by Olmectron", false);
         consoleWrite("        Original from Joshtech @GBATemp.net",false);
         consoleWrite("==============================", false);
         consoleWrite("- Buffer is set to " + Integer.toString(bufferSize) + "kb", true);
