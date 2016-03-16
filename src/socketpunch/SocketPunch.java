@@ -34,6 +34,8 @@ import com.olmectron.material.files.FieldsFile;
 import com.olmectron.material.files.TextFile;
 import com.olmectron.material.layouts.MaterialPane;
 import com.olmectron.material.utils.BackgroundTask;
+import java.io.BufferedInputStream;
+import java.io.BufferedOutputStream;
 import java.io.BufferedWriter;
 import java.io.ByteArrayInputStream;
 import java.io.DataOutputStream;
@@ -43,6 +45,7 @@ import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.io.PrintStream;
 import java.io.RandomAccessFile;
 import java.io.Reader;
 import java.net.InetAddress;
@@ -111,7 +114,7 @@ public class SocketPunch extends Application {
     private MaterialDisplayText jLabel5;
     private MaterialCheckBox saveLogChk;
     private MainLayout layout;
-    private CheckBox updateCheck;
+    private CheckBox updateCheck, deleteCheck;
     private CheckBox updatePercentageCheck;
     private CheckBox updateBarCheck;
     public int getTimeoutVal(){
@@ -286,7 +289,7 @@ public class SocketPunch extends Application {
         }
 
     public Pane initAll(Stage st) {
-        st.setTitle("SocketPunch mod v0.7");
+        st.setTitle("SocketPunch mod v0.8");
         StackPane root = new StackPane();
         
         queueList=new MaterialStandardList<File>(root) {
@@ -462,7 +465,7 @@ public class SocketPunch extends Application {
         }
         // Print some stoof
         consoleWrite("==============================", false);
-        consoleWrite("         SocketPunch mod v0.7 by Olmectron", false);
+        consoleWrite("         SocketPunch mod v0.8 by Olmectron", false);
         consoleWrite("        Original from Joshtech @GBATemp.net",false);
         consoleWrite("==============================", false);
         consoleWrite("- Buffer is set to " + Integer.toString(bufferSize) + "kb", true);
@@ -560,21 +563,23 @@ public class SocketPunch extends Application {
                 GetSettings();
             }
             else{
-                StringTokenizer updateToken=new StringTokenizer(fieldFile.getValue("update","true,true,true"),",");
+                StringTokenizer updateToken=new StringTokenizer(fieldFile.getValue("update","true,true,true,false"),",");
                 try{
                     boolean updatePercentage=Boolean.parseBoolean(updateToken.nextToken());
                 boolean updateBar=Boolean.parseBoolean(updateToken.nextToken());
                 boolean updateSpeed=Boolean.parseBoolean(updateToken.nextToken());
+                boolean deleteCia=Boolean.parseBoolean(updateToken.nextToken());
                     updatePercentageCheck.setSelected(updatePercentage);
                     updateBarCheck.setSelected(updateBar);
                     updateCheck.setSelected(updateSpeed);
+                    deleteCheck.setSelected(deleteCia);
                     
                 }catch(NoSuchElementException ex){
-                    fieldFile.setValue("update","true,true,true");
+                    fieldFile.setValue("update","true,true,true,false");
                     updatePercentageCheck.setSelected(true);
                     updateBarCheck.setSelected(true);
                     updateCheck.setSelected(true);
-                    
+                    deleteCheck.setSelected(false);
                 }
                     bufferSize=Integer.parseInt(fieldFile.getValue("buffersize","128"));
                 ipText.setText(fieldFile.getValue("ip",ipText.getText()));
@@ -775,13 +780,18 @@ public class SocketPunch extends Application {
     public void setCounter(long val){
         counterProperty().set(val);
     }
-    public boolean connect(File file, MaterialProgressBar progressBar, MaterialDisplayText progressText, MaterialDisplayText speedText){
+    private boolean deleteWasSelected=false;
+    public boolean connect(File file, MaterialProgressBar progressBar, MaterialDisplayText progressText, MaterialDisplayText speedText,MaterialStandardListItem<File> container){
 		// Create socket
                 Socket socket;
                 DataOutputStream out;
+                BufferedOutputStream bos;
+                PrintStream ps;
                try {
 			socket = new Socket(ipText.getText(), 5000);
 			out = new DataOutputStream(socket.getOutputStream());
+                        bos=new BufferedOutputStream(out,bufferSize);
+                                  ps=new PrintStream(bos, false);
 		}catch(IOException e) {
                         // Only get 1 failed to open socket per file, else just say retrying
                         if(failCount == 0){
@@ -797,8 +807,10 @@ public class SocketPunch extends Application {
        
                 // Open file for streaming
 		FileInputStream in;
+                BufferedInputStream bis;
 		try {
 			in = new FileInputStream(file);
+                         bis=           new BufferedInputStream(in); 
 		} catch(IOException e) {
 			consoleWrite("- Failed to open file stream.", true);
                         //resetControls();
@@ -824,8 +836,8 @@ public class SocketPunch extends Application {
                         
                         final long start = System.currentTimeMillis();
                         long startTime = System.nanoTime();
-			while((length = in.read(buffer)) != -1) {
-				out.write(buffer, 0, length);
+			while((length = bis.read(buffer)) != -1) {
+				ps.write(buffer, 0, length);
                                 //total.set(total.get()+length);
                                 //if(updateCheck.isSelected()){
                                 //    lengthProperty().set(length);
@@ -882,12 +894,19 @@ public class SocketPunch extends Application {
                         String minutes=segundosTranscurridos.getAndroidLikeMinutesFormat();
                         //String minutes=dc.format(/60);
                         String size=dc.format((float) file.length() / 1048576);
+                        deleteWasSelected=deleteCheck.isSelected();
                         Platform.runLater(new Runnable(){
                             @Override
                             public void run() {
                                 speedText.setText(size+"MB sent successfully in "+minutes+" minutes at average "+(file.length()/(System.currentTimeMillis()-start))+"KB/s");
                                 progressText.setText("100%");
                                 progressBar.setProgress(1.0f);
+                                if(deleteWasSelected){
+                                    
+                                            queueList.removeItem(container);
+                                           
+                                }
+                                
                         //throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
                             }
                         });
@@ -901,7 +920,9 @@ public class SocketPunch extends Application {
                         return false;
 		} finally {
 			try {
+                            bis.close();
 				in.close();
+                                
                                 out.close();
                                 socket.close();
 				
@@ -1091,7 +1112,7 @@ if(files.size()>0){
                 try {
                     
                     new FieldsFile("config.txt").setValue("update", updatePercentageCheck.isSelected()+","+
-                            updateBarCheck.isSelected()+","+updateCheck.isSelected());
+                            updateBarCheck.isSelected()+","+updateCheck.isSelected()+","+deleteCheck.isSelected());
                     //throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
                 } catch (FileNotFoundException ex) {
                     Logger.getLogger(SocketPunch.class.getName()).log(Level.SEVERE, null, ex);
@@ -1106,7 +1127,7 @@ if(files.size()>0){
                 try {
                     
                     new FieldsFile("config.txt").setValue("update", updatePercentageCheck.isSelected()+","+
-                            updateBarCheck.isSelected()+","+updateCheck.isSelected());
+                            updateBarCheck.isSelected()+","+updateCheck.isSelected()+","+deleteCheck.isSelected());
                     //throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
                 } catch (FileNotFoundException ex) {
                     Logger.getLogger(SocketPunch.class.getName()).log(Level.SEVERE, null, ex);
@@ -1126,14 +1147,30 @@ if(files.size()>0){
                 try {
                     
                     new FieldsFile("config.txt").setValue("update", updatePercentageCheck.isSelected()+","+
-                            updateBarCheck.isSelected()+","+updateCheck.isSelected());
+                            updateBarCheck.isSelected()+","+updateCheck.isSelected()+","+deleteCheck.isSelected());
                     //throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
                 } catch (FileNotFoundException ex) {
                     Logger.getLogger(SocketPunch.class.getName()).log(Level.SEVERE, null, ex);
                 }
             }
         });
-                VBox updateBox=new VBox(updatePercentageCheck,updateBarCheck, updateCheck);
+          deleteCheck=new CheckBox();
+        deleteCheck.setSelected(true);
+        deleteCheck.setText("Clear file from queue when complete");
+        deleteCheck.selectedProperty().addListener(new ChangeListener<Boolean>(){
+            @Override
+            public void changed(ObservableValue<? extends Boolean> observable, Boolean oldValue, Boolean newValue) {
+                try {
+                    
+                    new FieldsFile("config.txt").setValue("update", updatePercentageCheck.isSelected()+","+
+                            updateBarCheck.isSelected()+","+updateCheck.isSelected()+","+deleteCheck.isSelected());
+                    //throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+                } catch (FileNotFoundException ex) {
+                    Logger.getLogger(SocketPunch.class.getName()).log(Level.SEVERE, null, ex);
+                }
+            }
+        });
+                VBox updateBox=new VBox(updatePercentageCheck,updateBarCheck, updateCheck,deleteCheck);
                 layout.addNodeAsDrawerItem(updateBox);
         //layout.addNodeAsDrawerItem(new VBox(updateCheck));
         
@@ -1303,8 +1340,11 @@ if(files.size()>0){
                     
                     //queueList.setSelectedIndex(i);
                     
-                    connectStatus = connect(item,(MaterialProgressBar)itemContainer.lookup("#progreso"),(MaterialDisplayText)itemContainer.lookup("#progresoTexto"),(MaterialDisplayText)itemContainer.lookup("#velocidadTexto"));
+                    connectStatus = connect(item,(MaterialProgressBar)itemContainer.lookup("#progreso"),(MaterialDisplayText)itemContainer.lookup("#progresoTexto"),(MaterialDisplayText)itemContainer.lookup("#velocidadTexto"),itemContainer);
                     //out.flush();
+                    if(connectStatus && deleteWasSelected){
+                        i--;
+                    }
                     if(!connectStatus && autotryChk.isSelected()){
                         i--;
                     }else if(!connectStatus && failCount < getTimeoutVal() - 1){
