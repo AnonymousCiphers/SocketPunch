@@ -15,6 +15,7 @@ import com.olmectron.material.components.MaterialIconButton;
 import com.olmectron.material.components.MaterialLabel;
 import com.olmectron.material.components.MaterialProgressBar;
 import com.olmectron.material.components.MaterialSelector;
+import com.olmectron.material.components.MaterialStandardDialog;
 import javafx.application.Application;
 import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
@@ -50,12 +51,15 @@ import java.io.RandomAccessFile;
 import java.io.Reader;
 import java.net.InetAddress;
 import java.net.Socket;
+import java.net.URL;
 import java.net.UnknownHostException;
 import java.text.DecimalFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.NoSuchElementException;
+import java.util.ResourceBundle;
 import java.util.StringTokenizer;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -74,6 +78,7 @@ import javafx.geometry.Pos;
 import javafx.scene.Node;
 import javafx.scene.control.CheckBox;
 import javafx.scene.control.ScrollPane;
+import static javafx.scene.input.DataFormat.URL;
 import javafx.scene.input.DragEvent;
 import javafx.scene.input.Dragboard;
 import javafx.scene.input.KeyEvent;
@@ -90,6 +95,7 @@ import javafx.stage.FileChooser.ExtensionFilter;
 import javafx.stage.WindowEvent;
 import org.utilities.Dates;
 import org.utilities.Hora;
+import socketpunch.languages.R;
 
 
 /**
@@ -139,11 +145,11 @@ public class SocketPunch extends Application {
             public void emptyList() {
                 if(!startedSending){
                     queueList.clear();
-                    new MaterialToast("List is empty now").unhide();
+                    new MaterialToast(R.string.empty_list).unhide();
                 
                 }
                 else{
-                    new MaterialToast("You cannot clear the list with transfer in process").unhide();
+                    new MaterialToast(R.string.warning_clear_list).unhide();
                 }
                 //throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
             }
@@ -159,7 +165,10 @@ public class SocketPunch extends Application {
                 startButtActionPerformed().handle(null);
                 //throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
             }
-
+            @Override
+            public void onLanguageChanged(String selectedLanguage){
+                new MaterialToast(R.string.restart_app,MaterialToast.LENGTH_LONG).unhide();
+            }
             @Override
             public void onBufferSizeChanged(int value) {
                 if(!startedSending){
@@ -173,7 +182,7 @@ public class SocketPunch extends Application {
                                             
                 }
                 else{
-                    new MaterialToast("You cannot change buffer when transferring files").unhide();
+                    new MaterialToast(R.string.warning_buffer_size).unhide();
                 }
                 //throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
             }
@@ -184,7 +193,7 @@ public class SocketPunch extends Application {
         
        transparentContainer.getStyleClass().add("full-transparent-container");
        
-       layout.setTitle("Socket Punch");
+       layout.setTitle(R.string.app_title);
         Scene scene = new Scene(layout, 800,500);
         scene.setOnDragOver(new EventHandler<DragEvent>() {
             @Override
@@ -212,7 +221,7 @@ public class SocketPunch extends Application {
                             queueList.addItem(file);
                         }
                         else{
-                            new MaterialToast("You can add only CIA files").unhide();
+                            new MaterialToast(R.string.no_cia_file_error).unhide();
                         }
                         
                     }
@@ -256,8 +265,9 @@ public class SocketPunch extends Application {
      */
     public static void main(String[] args) {
         launch(args);
+        
     }
-    
+   
     
     
     
@@ -284,12 +294,12 @@ public class SocketPunch extends Application {
     int bufferSize = 128;
     public void reprintConsoleBuffer(){
            
-        consoleWrite("- Buffer is set to " + Integer.toString(bufferSize) + "kb", true);
+        consoleWrite(R.string.get(R.string.buffer_set,Integer.toString(bufferSize)+""), true);
         
         }
 
     public Pane initAll(Stage st) {
-        st.setTitle("SocketPunch mod v0.8");
+        st.setTitle("SocketPunch MOD v0.9");
         StackPane root = new StackPane();
         
         queueList=new MaterialStandardList<File>(root) {
@@ -303,7 +313,7 @@ public class SocketPunch extends Application {
             //MaterialDisplayText tb = (MaterialDisplayText) itemBox.lookup("#progresoTexto");
             if(event.getButton().equals(MouseButton.SECONDARY)){
                 MaterialDropdownMenu dropdown=new MaterialDropdownMenu(event.getScreenX(),event.getScreenY());
-                dropdown.addItem(new MaterialDropdownMenuItem("Delete from queue"){
+                dropdown.addItem(new MaterialDropdownMenuItem(R.string.delete_queue_item){
                     @Override
                     public void onItemClick(){
                         if(!startedSending){
@@ -365,17 +375,8 @@ public class SocketPunch extends Application {
             HBox spanBox=new HBox();
             HBox.setHgrow(spanBox, Priority.ALWAYS);
             
-            MaterialIconButton optionsButton=new MaterialIconButton(MaterialIconButton.MORE_VERT_ICON);
-            optionsButton.setOnAction(new EventHandler<ActionEvent>(){
-                @Override
-                public void handle(ActionEvent event) {
-                    System.out.println("Vies");
-                    //throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
-                }
-                
-            });
+           
             
-            optionsButton.setColorCode(MaterialColor.material.BLACK_87);
             MaterialDisplayText progText=new MaterialDisplayText("0%");
             progText.setMinWidth(60);
             progText.setAlignment(Pos.CENTER_RIGHT);
@@ -383,7 +384,7 @@ public class SocketPunch extends Application {
             
             progText.setFontWeight(FontWeight.MEDIUM);
             progText.setId("progresoTexto");
-            MaterialDisplayText hexText=new MaterialDisplayText("Initial code: 0x"+hex.toUpperCase());
+            MaterialDisplayText hexText=new MaterialDisplayText(R.string.get(R.string.initial_code, "0x"+hex.toUpperCase()));
             //hexText.setMinWidth(62);
             hexText.setFontSize(12);
             hexText.setColorCode(MaterialColor.material.BLACK_54);
@@ -432,7 +433,7 @@ public class SocketPunch extends Application {
             InetAddress addr = InetAddress.getLocalHost();
             ipText.setText(addr.getHostAddress());
         } catch (UnknownHostException ex) {
-            consoleWrite("There appears to be a problem with the network!", true);
+            consoleWrite(R.string.network_problem, true);
         }
         GetSettings();
         ipText.textField().textProperty().addListener(new ChangeListener<String>(){
@@ -465,10 +466,10 @@ public class SocketPunch extends Application {
         }
         // Print some stoof
         consoleWrite("==============================", false);
-        consoleWrite("         SocketPunch mod v0.8 by Olmectron", false);
+        consoleWrite("         SocketPunch mod v0.9 by Olmectron", false);
         consoleWrite("        Original from Joshtech @GBATemp.net",false);
         consoleWrite("==============================", false);
-        consoleWrite("- Buffer is set to " + Integer.toString(bufferSize) + "kb", true);
+        consoleWrite(R.string.get(R.string.buffer_set, Integer.toString(bufferSize)), true);
         
         getCiaListing();
         //resetControls();
@@ -708,7 +709,7 @@ public class SocketPunch extends Application {
     }
     
     public void getCiaListing(){
-        consoleWrite("- Getting directory listings.", true);
+       // consoleWrite("- Getting directory listings.", true);
         OpenDir(System.getProperty("user.dir"));
         /*if(dirList.size()== 0){
             dirList.addItem("NO CIA'S FOUND!");
@@ -739,13 +740,13 @@ public class SocketPunch extends Application {
             public void run() {
                 String tempString;
         if(withTime){
-            tempString = consoleText.getText() + getTimeStamp() + " " + string + NEWLINE;
+            tempString = consoleText.getText() + getTimeStamp() + " - " + string + NEWLINE;
             if(saveLogChk.isSelected()){
-                WriteLog(CONST_PATH, getTimeStamp() + " " + string);
+                WriteLog(CONST_PATH, getTimeStamp() + " - " + string);
             }
             consoleText.setText(tempString);
         } else {
-            tempString = consoleText.getText() + string + NEWLINE;
+            tempString = consoleText.getText()+ string + NEWLINE;
             if(saveLogChk.isSelected()){
                 WriteLog(CONST_PATH, string);
             }
@@ -796,9 +797,9 @@ public class SocketPunch extends Application {
                         // Only get 1 failed to open socket per file, else just say retrying
                         if(failCount == 0){
                             
-                            consoleWrite("- Failed to open socket. Please check IP.", true);
+                            consoleWrite(R.string.open_socket_failed, true);
                         } else {
-                            consoleWrite("- Retrying!", true);
+                            consoleWrite(R.string.retrying_transfer, true);
                         }
 			
 			//resetControls();
@@ -812,7 +813,7 @@ public class SocketPunch extends Application {
 			in = new FileInputStream(file);
                          bis=           new BufferedInputStream(in); 
 		} catch(IOException e) {
-			consoleWrite("- Failed to open file stream.", true);
+			consoleWrite(R.string.file_stream_failed, true);
                         //resetControls();
 			return false;
 		}
@@ -824,10 +825,10 @@ public class SocketPunch extends Application {
 			DecimalFormat dc=new DecimalFormat("0.00");
                         
 		try {
-			consoleWrite("- Sending info...", true);
+			consoleWrite(R.string.sending_info, true);
 			out.writeLong(file.length());
                         //progBar.((int) file.length());
-			consoleWrite(String.format("- Sending file with size of %.2fmb",(float) file.length() / 1048576), true);
+			consoleWrite(R.string.get(R.string.sending_file,((float) file.length() / 1048576)+""), true);
 			byte buffer[] = new byte[1024 * bufferSize];
 			int length;
                         costProperty().set(System.currentTimeMillis());
@@ -877,7 +878,11 @@ public class SocketPunch extends Application {
                                                Hora hora=new Hora((int)secondsLeft);
                                                
                                                //speedText.setText(formattedProgress+"MB of "+formattedTotal+"MB at "+(lengthProperty().get()/cost)+"KB/s");
-                                               speedText.setText(hora.getAndroidLikeMinutesFormat()+" minutes left, "+formattedProgress+"MB of "+formattedTotal+"MB at "+lSpeed+"KB/s");
+                                               
+                                               //speedText.setText(hora.getAndroidLikeMinutesFormat()+" minutes left, "+formattedProgress+"MB of "+formattedTotal+"MB at "+lSpeed+"KB/s");
+                                            
+                                               speedText.setText(R.string.get(R.string.speed_update, new String[]{hora.getAndroidLikeMinutesFormat(),
+                                               formattedProgress,formattedTotal,lSpeed+""}));
                                             }
                                             
                                             //progressText.setText(String.format("%.2fmb of %.2fmb @ %.2f%%",(float) getCounter() / 1048576, (float) file.length() / 1048576, (((float) getCounter() / 1048576) / ((float) file.length() / 1048576))* 100));
@@ -894,29 +899,41 @@ public class SocketPunch extends Application {
                         String minutes=segundosTranscurridos.getAndroidLikeMinutesFormat();
                         //String minutes=dc.format(/60);
                         String size=dc.format((float) file.length() / 1048576);
-                        deleteWasSelected=deleteCheck.isSelected();
+                        //deleteWasSelected=deleteCheck.isSelected();
                         Platform.runLater(new Runnable(){
                             @Override
                             public void run() {
-                                speedText.setText(size+"MB sent successfully in "+minutes+" minutes at average "+(file.length()/(System.currentTimeMillis()-start))+"KB/s");
+                                //speedText.setText(size+"MB sent successfully in "+minutes+" minutes at average "+(file.length()/(System.currentTimeMillis()-start))+"KB/s");
+                                speedText.setText(R.string.get(R.string.successful_transfer,new String[]{
+                                size,
+                                    minutes,
+                                    
+                                (file.length()/(System.currentTimeMillis()-start))+""
+                                
+                                }));
                                 progressText.setText("100%");
                                 progressBar.setProgress(1.0f);
-                                if(deleteWasSelected){
-                                    
-                                            queueList.removeItem(container);
+                                //if(deleteWasSelected){
+                                //    container.setVisible(false);
+                                            //queueList.removeItem(container);
                                            
-                                }
+                                //}
                                 
                         //throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
                             }
                         });
-                        consoleWrite("- Success! " +file.getName()+" sent in "+minutes+" minutes at average "+(file.length()/(System.currentTimeMillis()-start))+"KB/s", true);
+                        //consoleWrite("- Success! " ++" sent in "++" minutes at average "++"KB/s", true);
+                        consoleWrite(R.string.get(R.string.successful_console,new String[]{
+                        file.getName(),
+                        minutes,
+                        (file.length()/(System.currentTimeMillis()-start))+""
+                        }), true);
                         
                         return true;
 		} catch(IOException e) {
                         //resetControls();
                         //e.printStackTrace();
-			consoleWrite(String.format("- Failed at %.2fmb of %.2fmb @ %.2f%%",(float) getCounter() / 1048576, (float) file.length() / 1048576, (((float) getCounter() / 1048576) / ((float) file.length() / 1048576))* 100), true);
+			consoleWrite(R.string.get(R.string.failed_console,new String[]{((float) getCounter() / 1048576)+"", ((float) file.length() / 1048576)+"", ((((float) getCounter() / 1048576) / ((float) file.length() / 1048576))* 100)+""}), true);
                         return false;
 		} finally {
 			try {
@@ -937,7 +954,7 @@ public class SocketPunch extends Application {
             fileChooser.setInitialDirectory(new File(lastDir));
         }
        
- fileChooser.setTitle("Open CIA Files");
+ fileChooser.setTitle(R.string.open_files);
  fileChooser.getExtensionFilters().addAll(
          new ExtensionFilter("CIA Files", "*.cia"));
  List<File> selectedFiles = fileChooser.showOpenMultipleDialog(mainStage);
@@ -971,7 +988,7 @@ if(files.size()>0){
                             queueList.addItem(ciaFiles.get(i));
                                     i++;
                         }
-                        new MaterialToast("Some CIA files weren't added since the queue list's limit is 30",MaterialToast.LENGTH_LONG).unhide();
+                        new MaterialToast(R.string.queue_limit,MaterialToast.LENGTH_LONG).unhide();
                     }
                     
                 }
@@ -986,7 +1003,7 @@ if(files.size()>0){
         
         //queueList = new javax.swing.JList();
         jScrollPane3 = new ScrollPane();
-        ipText = new MaterialTextField("3DS IP Address"){
+        ipText = new MaterialTextField(R.string.ip_address){
             @Override
             public boolean onError(String valor){
                 
@@ -996,7 +1013,7 @@ if(files.size()>0){
                 return false;
             }
         };
-        ipText.setErrorText("Write me something!");
+        ipText.setErrorText(R.string.write_me);
         
         ipText.allowDot();
         ipText.lockLetters();
@@ -1017,7 +1034,7 @@ if(files.size()>0){
         //dirList = new javax.swing.JList();
         jLabel4 = new MaterialDisplayText("");
         autotryChk = new MaterialCheckBox();
-        timeoutVal = new MaterialTextField("Timeout Tries"){
+        timeoutVal = new MaterialTextField(R.string.timeout_tries){
         @Override
         public boolean onError(String val){
             if(val.trim().equals("")){
@@ -1027,7 +1044,7 @@ if(files.size()>0){
         }
         
         };
-        timeoutVal.setErrorText("I'm a five");
+        timeoutVal.setErrorText(R.string.a_five);
         jLabel5 = new MaterialDisplayText("");
         saveLogChk = new MaterialCheckBox();
         RaisedButton openButton=new RaisedButton("Open cias");
@@ -1105,7 +1122,7 @@ if(files.size()>0){
         layout.addNodeAsDrawerItem(new HBox(ipText,timeoutVal));
         updatePercentageCheck=new CheckBox();
         updatePercentageCheck.setSelected(true);
-        updatePercentageCheck.setText("Update percentage when sending");
+        updatePercentageCheck.setText(R.string.update_percentage);
         updatePercentageCheck.selectedProperty().addListener(new ChangeListener<Boolean>(){
             @Override
             public void changed(ObservableValue<? extends Boolean> observable, Boolean oldValue, Boolean newValue) {
@@ -1134,13 +1151,13 @@ if(files.size()>0){
                 }
             }
         });
-        updateBarCheck.setText("Update progress bar when sending");
+        updateBarCheck.setText(R.string.update_progress_bar);
         
         
         
         updateCheck=new CheckBox();
         updateCheck.setSelected(true);
-        updateCheck.setText("Update transfer speeds when sending");
+        updateCheck.setText(R.string.update_speed_text);
         updateCheck.selectedProperty().addListener(new ChangeListener<Boolean>(){
             @Override
             public void changed(ObservableValue<? extends Boolean> observable, Boolean oldValue, Boolean newValue) {
@@ -1155,8 +1172,9 @@ if(files.size()>0){
             }
         });
           deleteCheck=new CheckBox();
+          deleteCheck.setDisable(true);
         deleteCheck.setSelected(true);
-        deleteCheck.setText("Clear file from queue when complete");
+        deleteCheck.setText(R.string.clear_completed);
         deleteCheck.selectedProperty().addListener(new ChangeListener<Boolean>(){
             @Override
             public void changed(ObservableValue<? extends Boolean> observable, Boolean oldValue, Boolean newValue) {
@@ -1211,7 +1229,7 @@ if(files.size()>0){
         layout.addNodeAsDrawerItem(scrollBox);
         
         scrollBox.setPadding(new Insets(8,0,0,0));
-        MaterialTooltip consoleTooltip=new MaterialTooltip("Click me for opening the log.txt!",consoleText);
+        MaterialTooltip consoleTooltip=new MaterialTooltip(R.string.open_log,consoleText);
         scroll.setMinHeight(170);
         scroll.setMaxHeight(170);
         
@@ -1257,11 +1275,11 @@ if(files.size()>0){
                     progreso.setProgress(0.0f);
                     progresoTexto.setText("0%");
                     }
-                    new MaterialToast("You punched! Wait a while before trying again. Look at the console!").unhide();
+                    new MaterialToast(R.string.you_punched).unhide();
                 
                 }
                 else{
-                    new MaterialToast("Open some CIA files first!").unhide();
+                    new MaterialToast(R.string.open_first).unhide();
                 
                 }
                         
@@ -1283,21 +1301,21 @@ if(files.size()>0){
                  }
                 // Set flag false so a new send queue can be init
                 startedSending = false;
-                consoleWrite("- Queue has finished!", true);
+                consoleWrite(R.string.queue_finished, true);
                 Platform.runLater(new Runnable(){
                     @Override
                     public void run() {
-                         new MaterialToast("Queue has finished!").unhide();
+                         new MaterialToast(R.string.queue_finished).unhide();
                         //throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
                     }
                 });
                
             } else {
-                consoleWrite("- A file transfer is already in progress.", true);
+                consoleWrite(R.string.transfer_in_progress, true);
                 Platform.runLater(new Runnable(){
                     @Override
                     public void run() {
-                         new MaterialToast("A file transfer is already in progress.").unhide();
+                         new MaterialToast(R.string.transfer_in_progress).unhide();
                         //throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
                     }
                 });
@@ -1319,7 +1337,7 @@ if(files.size()>0){
    };*/
                 task.play();
                 }else{
-                    new MaterialToast("Check your fields, please").unhide();
+                    new MaterialToast(R.string.check_fields).unhide();
                 }
    //thread.start();//To change body of generated methods, choose Tools | Templates.
             }
@@ -1342,9 +1360,7 @@ if(files.size()>0){
                     
                     connectStatus = connect(item,(MaterialProgressBar)itemContainer.lookup("#progreso"),(MaterialDisplayText)itemContainer.lookup("#progresoTexto"),(MaterialDisplayText)itemContainer.lookup("#velocidadTexto"),itemContainer);
                     //out.flush();
-                    if(connectStatus && deleteWasSelected){
-                        i--;
-                    }
+                    
                     if(!connectStatus && autotryChk.isSelected()){
                         i--;
                     }else if(!connectStatus && failCount < getTimeoutVal() - 1){
