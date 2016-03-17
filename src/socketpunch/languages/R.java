@@ -4,6 +4,7 @@ import com.olmectron.material.MaterialDesign;
 import com.olmectron.material.files.FieldsFile;
 import com.olmectron.material.files.FilesList;
 import java.io.BufferedReader;
+import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
@@ -15,6 +16,7 @@ import java.util.StringTokenizer;
 import java.util.function.Consumer;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import javafx.stage.FileChooser;
 import socketpunch.SocketPunch;
 
 /*
@@ -45,8 +47,52 @@ public class R {
             }
             return languageName;
         }
+        private static CustomMap defaultMap;
+        private static CustomMap getDefaultLanguageFile(){
+            if(defaultMap==null){
+                defaultMap=new CustomMap();
+            InputStreamReader inUTF8 = null;
+                    InputStream in=null;
+                    BufferedReader input=null;
+                    try {
+                        //System.out.println(getLanguageName().toLowerCase());
+                        in = R.class.getResourceAsStream("/socketpunch/languages/files/default.txt");
+                        //inUTF8 = new  InputStreamReader(in,"UTF8");
+                        input = new BufferedReader(new  InputStreamReader(in,"UTF8"));
+                        input.lines().forEach(new Consumer<String>(){
+                            
+                            @Override
+                            public void accept(String t) {
+                                if(t.contains("=")){
+                                    StringTokenizer tok=new StringTokenizer(t,"=");
+                                    defaultMap.putString(tok.nextToken().trim(),tok.nextToken().trim());
+                                }
+                                //System.out.println("Linea "+t);
+                                //throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+                            }
+                        });
+                    } catch (UnsupportedEncodingException ex) {
+                        Logger.getLogger(R.class.getName()).log(Level.SEVERE, null, ex);
+                    } finally {
+                        try {
+                            if(inUTF8!=null)
+                            inUTF8.close();
+                            if(in!=null)
+                            in.close();
+                            if(input!=null)
+                            input.close();
+                        } catch (IOException ex) {
+                            Logger.getLogger(R.class.getName()).log(Level.SEVERE, null, ex);
+                        }
+                    }
+            
+            }
+            
+            return defaultMap;
+        }
         private static CustomMap getInternalLanguageFile(){
             if(fileMap==null){
+                
                 fileMap=new CustomMap();
                 
                 if(!getLanguageName().toLowerCase().contains(".txt")){
@@ -89,10 +135,10 @@ public class R {
                 else{
                     try {
                         FieldsFile langFile=new FieldsFile("languages/"+getLanguageName());
-                        FilesList fieldsList=langFile.getFieldList();
-                        for(int i=0;i<fieldsList.size();i++){
-                            
-                           fileMap.putString(fieldsList.getKeyAt(i),fieldsList.getValueAt(i));
+                        //FilesList fieldsList=langFile.getFieldList();
+                        for(int i=0;i<getDefaultLanguageFile().getKeys().size();i++){
+                            String key=getDefaultLanguageFile().getKeys().get(i);
+                           fileMap.putString(key,langFile.getValue(key, getDefaultLanguageFile().getString(key)));
                             
                         }
                         
@@ -103,6 +149,67 @@ public class R {
                 }
             }
             return fileMap;
+        }
+        private static CustomMap exportMap;
+        private static CustomMap getExportLanguageFile(String language){
+            if(exportMap==null){
+                
+                exportMap=new CustomMap();
+                
+                if(!language.toLowerCase().contains(".txt")){
+                    InputStreamReader inUTF8 = null;
+                    InputStream in=null;
+                    BufferedReader input=null;
+                    try {
+                        //System.out.println(getLanguageName().toLowerCase());
+                        in = R.class.getResourceAsStream("/socketpunch/languages/files/"+language.toLowerCase()+".txt");
+                        //inUTF8 = new  InputStreamReader(in,"UTF8");
+                        input = new BufferedReader(new  InputStreamReader(in,"UTF8"));
+                        input.lines().forEach(new Consumer<String>(){
+                            
+                            @Override
+                            public void accept(String t) {
+                                if(t.contains("=")){
+                                    StringTokenizer tok=new StringTokenizer(t,"=");
+                                    exportMap.putString(tok.nextToken().trim(),tok.nextToken().trim());
+                                }
+                                //System.out.println("Linea "+t);
+                                //throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+                            }
+                        });
+                    } catch (UnsupportedEncodingException ex) {
+                        Logger.getLogger(R.class.getName()).log(Level.SEVERE, null, ex);
+                    } finally {
+                        try {
+                            if(inUTF8!=null)
+                            inUTF8.close();
+                            if(in!=null)
+                            in.close();
+                            if(input!=null)
+                            input.close();
+                        } catch (IOException ex) {
+                            Logger.getLogger(R.class.getName()).log(Level.SEVERE, null, ex);
+                        }
+                    }
+                }
+                
+                else{
+                    try {
+                        FieldsFile langFile=new FieldsFile("languages/"+language);
+                        //FilesList fieldsList=langFile.getFieldList();
+                        for(int i=0;i<getDefaultLanguageFile().getKeys().size();i++){
+                            String key=getDefaultLanguageFile().getKeys().get(i);
+                           exportMap.putString(key,langFile.getValue(key, getDefaultLanguageFile().getString(key)));
+                            
+                        }
+                        
+                    } catch (FileNotFoundException ex) {
+                        Logger.getLogger(R.class.getName()).log(Level.SEVERE, null, ex);
+                    }
+                    
+                }
+            }
+            return exportMap;
         }
         public static String clear_list=getInternalLanguageFile().getString("clear_list");
         public static String empty_list=getInternalLanguageFile().getString("empty_list");
@@ -120,6 +227,8 @@ public class R {
         public static String sending_file=getInternalLanguageFile().getString("sending_file");
         public static String speed_update=getInternalLanguageFile().getString("speed_update");
         public static String app_title=getInternalLanguageFile().getString("app_title");
+        public static String clear_all_files=getInternalLanguageFile().getString("clear_all_files");
+        public static String clear_complete_files=getInternalLanguageFile().getString("clear_complete_files");
         public static String successful_transfer=getInternalLanguageFile().getString("successful_transfer");
         public static String successful_console=getInternalLanguageFile().getString("successful_console");
         public static String failed_console=getInternalLanguageFile().getString("failed_console");
@@ -154,6 +263,32 @@ public class R {
         public static String change=getInternalLanguageFile().getString("change");
         public static String import_language=getInternalLanguageFile().getString("import_language");
         public static String import_successful=getInternalLanguageFile().getString("import_successful");
+        public static String number_files_removed=getInternalLanguageFile().getString("number_files_removed");
+        public static String reset_queue=getInternalLanguageFile().getString("reset_queue");
+        public static String export_language=getInternalLanguageFile().getString("export_language");
+        public static String text_file=getInternalLanguageFile().getString("text_file");
+        public static String export=getInternalLanguageFile().getString("export");
+        public static void saveExportFile(String language){
+            FileChooser fileChooser= new FileChooser();
+            fileChooser.getExtensionFilters().add(new FileChooser.ExtensionFilter(R.string.text_file,"*.txt"));
+            fileChooser.setTitle(R.string.export_language);
+            File exportFile=fileChooser.showSaveDialog(MaterialDesign.primary);
+            if(exportFile!=null){
+                try{
+                    FieldsFile exportedFile=new FieldsFile(exportFile.getAbsolutePath());
+                    for(int i=0;i<getDefaultLanguageFile().getKeys().size();i++){
+                        String key=getDefaultLanguageFile().getKeys().get(i);
+                        exportedFile.addField(key, 
+                                getExportLanguageFile(language).getString(key,getDefaultLanguageFile().getString(key)));
+                    }
+                    
+                }
+                catch(IOException ex){
+                    ex.printStackTrace();
+                }
+                
+            }
+        }
         public static String get(String text, String insert){
             return text.replace("...", insert);
         }

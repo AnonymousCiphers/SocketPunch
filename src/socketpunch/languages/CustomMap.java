@@ -5,11 +5,19 @@
  */
 package socketpunch.languages;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 
 public class CustomMap extends HashMap{
         public CustomMap(){
             super();
+        }
+        public ArrayList<String> getKeys(){
+            ArrayList<String> keys=new ArrayList<String>();
+            for(Object key: keySet().toArray()){
+               keys.add(key.toString());
+            }
+            return keys;
         }
          public void putString(String name, String value){
                         put(name, value);
@@ -20,6 +28,15 @@ public class CustomMap extends HashMap{
                         }
                         catch(NullPointerException ex){
                             return "Error reading language";
+                        }
+                        
+                    }
+                    public String getString(String name,String existant){
+                        try{
+                            return get(name).toString();
+                        }
+                        catch(NullPointerException ex){
+                            return existant;
                         }
                         
                     }

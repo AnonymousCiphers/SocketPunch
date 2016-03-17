@@ -35,6 +35,7 @@ import javafx.geometry.Insets;
 import javafx.scene.control.Button;
 import javafx.scene.input.KeyEvent;
 import javafx.scene.layout.HBox;
+import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
 import javafx.stage.FileChooser;
 import javafx.stage.Stage;
@@ -54,10 +55,42 @@ public abstract class MainLayout extends MaterialEditableLayout {
         super("",false,false,true);
         setDrawerWidth(300);
         
+        addToolbarActionButton(MaterialIconButton.RESTORE_ICON,new EventHandler<ActionEvent>(){
+            @Override
+            public void handle(ActionEvent event) {
+                resetQueue();
+            
+            }
+        
+        
+        },R.string.reset_queue);
         addToolbarActionButton(MaterialIconButton.DELETE_ICON,new EventHandler<ActionEvent>(){
             @Override
             public void handle(ActionEvent event) {
-                emptyList();
+                 
+                
+                MaterialDropdownMenu clearMenu=new MaterialDropdownMenu((Region)event.getSource());
+                clearMenu.addItem(new MaterialDropdownMenuItem(R.string.clear_all_files){
+                    @Override
+                    public void onItemClick(){
+                        emptyList();
+                    }
+                
+                
+                });
+                clearMenu.addItem(new MaterialDropdownMenuItem(R.string.clear_complete_files){
+                    @Override
+                    public void onItemClick(){
+                       removeCompletedFiles();
+                    }
+                
+                
+                });
+                
+                
+                clearMenu.unhide();
+               
+                
                 //throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
             }
         },R.string.clear_list);
@@ -78,9 +111,11 @@ public abstract class MainLayout extends MaterialEditableLayout {
         },"Punch!").getIconButton().setIcon("punch_icon.png");*/
         
     }
+    public abstract void removeCompletedFiles();
     public abstract void emptyList();
     public abstract void openCia();
     public abstract void punch();
+    public abstract void resetQueue();
     public abstract void onBufferSizeChanged(int value);
     public abstract void onLanguageChanged(String selectedLang);
     @Override
@@ -263,6 +298,96 @@ public abstract class MainLayout extends MaterialEditableLayout {
                  
                  
                  });
+                 
+                  menu.addItem(new MaterialDropdownMenuItem(R.string.export_language){
+            @Override
+            public void onItemClick(){
+                try {
+                    
+                    MaterialSelector<String> languageSelector=new MaterialSelector<String>();
+                    languageSelector.setPrefWidth(500);
+                    languageSelector.setConverter(new  StringConverter<String>(){
+                        @Override
+                        public String toString(String object) {
+                            return object;//throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+                        }
+
+                        @Override
+                        public String fromString(String string) {
+                            return null;//throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+                        }
+                    });
+                    languageSelector.addItem("English");
+                    languageSelector.addItem("Español");
+                    File dir=new File("languages");
+                    if(dir.exists() && dir.isDirectory()){
+                        File[] fileList=dir.listFiles();
+                        for(File langFile: fileList){
+                            languageSelector.addItem(langFile.getName());
+                        }
+                    }
+                    for (int i=0;i<languageSelector.getItems().size();i++) {
+                        String item=languageSelector.getItems().get(i);
+                        FieldsFile f=new FieldsFile("config.txt");
+                        String lang=f.getValue("language", "english");
+                        if(item.toLowerCase().equals(lang)){
+                            languageSelector.getSelectionModel().select(i);
+                        }
+                    }
+                    
+                    MaterialLabel label=new MaterialLabel(R.string.export_language);
+                    languageSelector.setLabel(label);
+                    MaterialConfirmDialog advancedDialog=
+                            new MaterialConfirmDialog(R.string.export_language,R.string.select_language,R.string.export,R.string.cancel){
+                                private boolean exportWhenHidden=false;
+                                private String selectedLanguage=null;
+                                @Override
+                                public void onPositiveButton(){
+                                    selectedLanguage=languageSelector.getSelectionModel().getSelectedItem().toLowerCase();
+                                    exportWhenHidden=true;
+                                    dismiss();
+                                        
+                                        
+                                    
+                                        
+                                }
+                                @Override
+                                public void onDialogShown() {
+                                    //throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+                                }
+                                
+                                @Override
+                                public void onDialogHidden() {
+                                    if(exportWhenHidden){
+                                        R.string.saveExportFile(selectedLanguage);
+                                    }
+                                    //throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+                                }
+                                
+                                @Override
+                                public void onDialogKeyReleased(KeyEvent event) {
+                                    //throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+                                }
+                                
+                                @Override
+                                public void onDialogKeyPressed(KeyEvent event) {
+                                    //throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+                                }
+                            };
+                    //bufferField.lockLetters();
+                    //bufferField.setText(new FieldsFile("config.txt").getValue("buffersize","128"));
+                    VBox advancedOptionsBox=new VBox(label,languageSelector);
+                    advancedDialog.setCustomContent(advancedOptionsBox);
+                    advancedDialog.unhide();
+                } catch (FileNotFoundException ex) {
+                    Logger.getLogger(MainLayout.class.getName()).log(Level.SEVERE, null, ex);
+                }
+            }
+        
+        });
+                 
+                 
+                 
         menu.addItem(new MaterialDropdownMenuItem(R.string.about){
             @Override
             public void onItemClick(){
