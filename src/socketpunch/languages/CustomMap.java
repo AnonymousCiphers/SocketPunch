@@ -12,6 +12,9 @@ public class CustomMap extends HashMap{
         public CustomMap(){
             super();
         }
+       
+                    
+        public static String[] languages=new String[]{"English","Español","Português (Brasil)","中国（简体）","Italiano","pусский"};
         public ArrayList<String> getKeys(){
             ArrayList<String> keys=new ArrayList<String>();
             for(Object key: keySet().toArray()){
@@ -27,6 +30,7 @@ public class CustomMap extends HashMap{
                             return get(name).toString();
                         }
                         catch(NullPointerException ex){
+                            //System.out.println("Key: "+name+" not found");
                             return "Error reading language";
                         }
                         

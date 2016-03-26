@@ -17,6 +17,7 @@ import java.util.function.Consumer;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javafx.stage.FileChooser;
+import org.utilities.StringTrimmer;
 import socketpunch.SocketPunch;
 
 /*
@@ -35,6 +36,10 @@ public class R {
         
         private static CustomMap fileMap;
         private static String languageName;
+        public static String update=getInternalLanguageFile().getString("update");
+        public static String update_available=getInternalLanguageFile().getString("update_available");
+        public static String connection_failed=getInternalLanguageFile().getString("connection_failed");
+        public static String settings=getInternalLanguageFile().getString("settings");
         private static String getLanguageName(){
             if(languageName==null){
                 try {
@@ -99,9 +104,12 @@ public class R {
                     InputStreamReader inUTF8 = null;
                     InputStream in=null;
                     BufferedReader input=null;
+                    
                     try {
-                        System.out.println(getLanguageName().toLowerCase());
-                        in = R.class.getResourceAsStream("/socketpunch/languages/files/"+getLanguageName().toLowerCase()+".txt");
+                        String languageFileName=StringTrimmer.trim(getLanguageName()
+                                .trim().toLowerCase().replace("(","").replace(")","")).replace(" ", "_");
+                        System.out.println(languageFileName);
+                        in = R.class.getResourceAsStream("/socketpunch/languages/files/"+languageFileName+".txt");
                         //inUTF8 = new  InputStreamReader(in,"UTF8");
                         input = new BufferedReader(new  InputStreamReader(in,"UTF8"));
                         input.lines().forEach(new Consumer<String>(){
@@ -229,6 +237,8 @@ public class R {
         public static String app_title=getInternalLanguageFile().getString("app_title");
         public static String clear_all_files=getInternalLanguageFile().getString("clear_all_files");
         public static String clear_complete_files=getInternalLanguageFile().getString("clear_complete_files");
+        
+        public static String already_updated=getInternalLanguageFile().getString("already_updated");
         public static String successful_transfer=getInternalLanguageFile().getString("successful_transfer");
         public static String successful_console=getInternalLanguageFile().getString("successful_console");
         public static String failed_console=getInternalLanguageFile().getString("failed_console");
@@ -268,6 +278,11 @@ public class R {
         public static String export_language=getInternalLanguageFile().getString("export_language");
         public static String text_file=getInternalLanguageFile().getString("text_file");
         public static String export=getInternalLanguageFile().getString("export");
+        public static String version="v1.0.5";
+        public static String retrieve_update=getInternalLanguageFile().getString("retrieve_update");
+        public static String update_warning=getInternalLanguageFile().getString("update_warning");
+        
+        public static String show_progress_options=getInternalLanguageFile().getString("show_progress_options");
         public static void saveExportFile(String language){
             FileChooser fileChooser= new FileChooser();
             fileChooser.getExtensionFilters().add(new FileChooser.ExtensionFilter(R.string.text_file,"*.txt"));

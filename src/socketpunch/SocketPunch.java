@@ -2,6 +2,7 @@
 package socketpunch;
 
 import com.olmectron.material.MaterialDesign;
+import com.olmectron.material.components.FlatButton;
 import com.olmectron.material.components.FontWeight;
 import com.olmectron.material.components.MaterialButton;
 import com.olmectron.material.components.MaterialCard;
@@ -33,8 +34,11 @@ import com.olmectron.material.components.RaisedButton;
 import com.olmectron.material.constants.MaterialColor;
 import com.olmectron.material.files.FieldsFile;
 import com.olmectron.material.files.TextFile;
+import com.olmectron.material.files.WatchDir;
 import com.olmectron.material.layouts.MaterialPane;
 import com.olmectron.material.utils.BackgroundTask;
+import com.olmectron.material.utils.HTTPReader;
+import com.olmectron.material.utils.MultipartUtility;
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.BufferedWriter;
@@ -51,11 +55,15 @@ import java.io.RandomAccessFile;
 import java.io.Reader;
 import java.net.InetAddress;
 import java.net.Socket;
+import java.net.SocketTimeoutException;
 import java.net.URL;
 import java.net.UnknownHostException;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.text.DecimalFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
 import java.util.NoSuchElementException;
@@ -64,6 +72,9 @@ import java.util.StringTokenizer;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.prefs.Preferences;
+import javafx.animation.KeyFrame;
+import javafx.animation.KeyValue;
+import javafx.animation.Timeline;
 import javafx.application.Platform;
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.IntegerProperty;
@@ -93,6 +104,7 @@ import javafx.scene.paint.Color;
 import javafx.stage.FileChooser;
 import javafx.stage.FileChooser.ExtensionFilter;
 import javafx.stage.WindowEvent;
+import javafx.util.Duration;
 import org.utilities.Dates;
 import org.utilities.Hora;
 import socketpunch.languages.R;
@@ -120,9 +132,9 @@ public class SocketPunch extends Application {
     private MaterialDisplayText jLabel5;
     private MaterialCheckBox saveLogChk;
     private MainLayout layout;
-    private CheckBox updateCheck, deleteCheck;
-    private CheckBox updatePercentageCheck;
-    private CheckBox updateBarCheck;
+    private MaterialCheckBox updateCheck, deleteCheck;
+    private MaterialCheckBox updatePercentageCheck;
+    private MaterialCheckBox updateBarCheck;
     public int getTimeoutVal(){
         if(!timeoutVal.getText().trim().equals("")){
             return Integer.parseInt(timeoutVal.getText());
@@ -138,7 +150,7 @@ public class SocketPunch extends Application {
         System.setProperty("prism.lcdtext", "false");
         System.setProperty("javafx.animation.fullspeed","true");
         System.setProperty("prism.vsync","false");
-        
+        //R.string.initLanguagePack();
         MaterialDesign.setCustomPath("/socketpunch/images/");
         layout=new MainLayout() {
             @Override
@@ -222,6 +234,11 @@ public class SocketPunch extends Application {
                 
                 //throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
             }
+
+            @Override
+            public void onCheckUpdate() {
+                checkForUpdates(true);//throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+            }
         };
         layout.setRootView(initAll(primaryStage));
         
@@ -229,7 +246,6 @@ public class SocketPunch extends Application {
         
        transparentContainer.getStyleClass().add("full-transparent-container");
        
-       layout.setTitle(R.string.app_title);
         Scene scene = new Scene(layout, 800,500);
         scene.setOnDragOver(new EventHandler<DragEvent>() {
             @Override
@@ -291,9 +307,165 @@ public class SocketPunch extends Application {
                 //throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
             }
         });
+        
+        //initDirectoryWatcher();
+        
         primaryStage.setResizable(false);
+       layout.setTitle(R.string.app_title+" "+R.string.version);
+       
+        primaryStage.setOnShown(new EventHandler<WindowEvent>(){
+            @Override
+            public void handle(WindowEvent event) {
+                    checkForUpdates(false);
+       
+                //throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+            }
+        });
         primaryStage.show();
        
+    }
+    private void checkForUpdates(boolean showIfUpdated){
+       
+           BackgroundTask updateTask=new BackgroundTask(){
+               String latestVersion=null;
+               @Override
+               public Object onAction() {
+                
+                   HTTPReader readURL=new HTTPReader("http://olmectron.github.io/socket_update.html");
+                   readURL.setShowNetworkFailedToast(showIfUpdated);
+                   readURL.setNetworkFailedMessage(R.string.connection_failed); 
+                   latestVersion=readURL.readFile();
+                  
+                    return null;
+                   //throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+               }
+
+               @Override
+               public void onSucceed(Object valor) {
+                   if(latestVersion!=null && latestVersion.trim().toLowerCase().startsWith("v") && !latestVersion.toLowerCase().trim().equals(R.string.version)){
+                       FlatButton updateButton=new FlatButton(R.string.update);
+                       
+                       MaterialToast updateToast=new MaterialToast(R.string.get(R.string.update_available, latestVersion.trim()),updateButton,MaterialToast.LENGTH_UNDEFINED){
+                           @Override
+                           public void onButtonClicked(){
+                               if(!startedSending){
+                                   new MaterialToast(R.string.retrieve_update,MaterialToast.LENGTH_UNDEFINED).unhide();
+                                   new BackgroundTask(){
+                                       @Override
+                                       public Object onAction() {
+                                           startUpdate();
+                                           return null;
+                                           //throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+                                       }
+
+                                       @Override
+                                       public void onSucceed(Object valor) {
+                                           //throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+                                       }
+                                   }.play();
+                                           
+                               
+                               }
+                               else{
+                                   new MaterialToast(R.string.update_warning).unhide();
+                               }
+                               //System.out.println("Actualizando...");
+                           }
+                       
+                       };
+                       updateToast.unhide();
+                   
+                   }
+                   else if(latestVersion!=null && latestVersion.toLowerCase().trim().equals(R.string.version)){
+                       if(showIfUpdated)
+                       new MaterialToast(R.string.already_updated).unhide();
+                   }
+                   //throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+               }
+           };
+           updateTask.play();
+            
+      
+    }
+    private void startUpdate(){
+        try {
+            File jarFile=new File("updater/AppUpdater.jar");
+            if(jarFile.exists()){
+                Process process = Runtime.getRuntime().exec("java -jar updater/AppUpdater.jar");
+                if(process.isAlive()){
+                    System.exit(0);
+                }
+            }
+            else{
+                File dir=new File("updater");
+                if(!dir.exists()){
+                    dir.mkdir();
+                }
+                HTTPReader downloader=new HTTPReader("http://olmectron.github.io/AppUpdater.jar"){
+                    @Override
+                    public void onFileDownloaded(){
+                        File exe=new File("../SocketPunch.exe");
+                        if(exe.exists()){
+                            
+                            TextFile file=new TextFile("SocketPunch.cfg");
+                            file.setText(file.getText().replace("SocketPunch.jar", "updater/AppUpdater.jar").
+                                    replace("socketpunch/SocketPunch","appupdater/AppUpdater"));
+                          
+                            
+                        try {
+                            Process process = Runtime.getRuntime().exec("../SocketPunch.exe");
+                if(process.isAlive()){
+                    System.exit(0);
+                }
+                        } catch (IOException ex) {
+                            Logger.getLogger(SocketPunch.class.getName()).log(Level.SEVERE, null, ex);
+                        }
+                            
+                        }
+                        else{
+                        try {
+                            Process process = Runtime.getRuntime().exec("java -jar updater/AppUpdater.jar");
+                if(process.isAlive()){
+                    System.exit(0);
+                }
+                        } catch (IOException ex) {
+                            Logger.getLogger(SocketPunch.class.getName()).log(Level.SEVERE, null, ex);
+                        }
+                        
+                        }
+                    }
+                };
+                downloader.downloadFile("updater");
+                
+            }
+            
+            
+        } catch (IOException ex) {
+            Logger.getLogger(SocketPunch.class.getName()).log(Level.SEVERE, null, ex);
+        }
+    }
+    private void initDirectoryWatcher(){
+        try {
+        File dir=new File("cia");
+        if(!dir.exists()){
+            dir.mkdir();
+        }
+            String rootPath="cia/";
+        
+        Path pathc = Paths.get(rootPath);
+        WatchDir watchDir ;
+        
+            watchDir = new WatchDir(pathc, false);
+        
+watchDir.setNotificationExecutor(Platform::runLater);
+
+watchDir.setOnCreate(path -> addCia(path.toString())); /* or path -> listView.getItems().add(path) */
+Thread watchThread = new Thread(watchDir::processEvents);
+watchThread.setDaemon(true);
+watchThread.start();
+} catch (IOException ex) {
+            Logger.getLogger(R.class.getName()).log(Level.SEVERE, null, ex);
+        }
     }
 
     /**
@@ -335,7 +507,7 @@ public class SocketPunch extends Application {
         }
 
     public Pane initAll(Stage st) {
-        st.setTitle("SocketPunch MOD v0.9");
+        st.setTitle("SocketPunch MOD "+R.string.version);
         StackPane root = new StackPane();
         
         queueList=new MaterialStandardList<InstallableFile>(root) {
@@ -362,7 +534,11 @@ public class SocketPunch extends Application {
         }
         
         @Override
-        public Node itemConverter(InstallableFile it) {
+        public Node itemConverter(InstallableFile it,MaterialStandardListItem<InstallableFile> container) {
+            container.setOnMousePressed(onCardPressed);
+            container.setOnMouseDragged(onCardDragged);
+            container.setOnMouseReleased(onCardReleased);
+            
             File item=it.getFile();
             String hex="";
             RandomAccessFile raf = null;
@@ -408,7 +584,7 @@ public class SocketPunch extends Application {
             texto.setColorCode(MaterialColor.material.BLACK_87);
             texto.setFontSize(15);
             
-            card.setZ(bufferSize);
+            //card.setZ(bufferSize);
             HBox spanBox=new HBox();
             HBox.setHgrow(spanBox, Priority.ALWAYS);
             
@@ -503,7 +679,7 @@ public class SocketPunch extends Application {
         }
         // Print some stoof
         consoleWrite("==============================", false);
-        consoleWrite("         SocketPunch mod v0.9 by Olmectron", false);
+        consoleWrite("         SocketPunch MOD "+R.string.version+" by Olmectron", false);
         consoleWrite("        Original from Joshtech @GBATemp.net",false);
         consoleWrite("==============================", false);
         consoleWrite(R.string.get(R.string.buffer_set, Integer.toString(bufferSize)), true);
@@ -777,9 +953,9 @@ public class SocketPunch extends Application {
             public void run() {
                 String tempString;
         if(withTime){
-            tempString = consoleText.getText() + getTimeStamp() + " - " + string + NEWLINE;
+            tempString = consoleText.getText() + getTimeStamp(false) + " - " + string + NEWLINE;
             if(saveLogChk.isSelected()){
-                WriteLog(CONST_PATH, getTimeStamp() + " - " + string);
+                WriteLog(CONST_PATH, getTimeStamp(true) + " - " + string);
             }
             consoleText.setText(tempString);
         } else {
@@ -795,9 +971,11 @@ public class SocketPunch extends Application {
         
         //consoleText.setCaretPosition(consoleText.getDocument().getLength());
     }
-    public String getTimeStamp(){
-        
+    public String getTimeStamp(boolean includeDate){
+        if(includeDate)
         return Dates.getToday("/")+" - "+Dates.getNow();
+        else
+            return Dates.getNow();
     }
     private final IntegerProperty length=new SimpleIntegerProperty(this,"length");
     public IntegerProperty lengthProperty(){
@@ -828,9 +1006,13 @@ public class SocketPunch extends Application {
                 PrintStream ps;
                try {
 			socket = new Socket(ipText.getText(), 5000);
+                        //socket.setSendBufferSize(bufferSize);
+                        socket.setSoTimeout(20000);
+                       
 			out = new DataOutputStream(socket.getOutputStream());
                         bos=new BufferedOutputStream(out,bufferSize);
                                   ps=new PrintStream(bos, false);
+                                  
 		}catch(IOException e) {
                         // Only get 1 failed to open socket per file, else just say retrying
                         if(failCount == 0){
@@ -865,6 +1047,7 @@ public class SocketPunch extends Application {
 		try {
 			consoleWrite(R.string.sending_info, true);
 			out.writeLong(file.length());
+                        out.flush();
                         //progBar.((int) file.length());
 			consoleWrite(R.string.get(R.string.sending_file,((float) file.length() / 1048576)+""), true);
 			byte buffer[] = new byte[1024 * bufferSize];
@@ -875,7 +1058,7 @@ public class SocketPunch extends Application {
                         
                         final long start = System.currentTimeMillis();
                         long startTime = System.nanoTime();
-			while((length = bis.read(buffer)) != -1) {
+			while((length = bis.read(buffer)) >= 0) {
 				ps.write(buffer, 0, length);
                                 ps.flush();
                                 //total.set(total.get()+length);
@@ -967,6 +1150,7 @@ public class SocketPunch extends Application {
                         //throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
                             }
                         });
+                       
                         iFile.setTransferComplete(true);
                         //consoleWrite("- Success! " ++" sent in "++" minutes at average "++"KB/s", true);
                         consoleWrite(R.string.get(R.string.successful_console,new String[]{
@@ -976,7 +1160,12 @@ public class SocketPunch extends Application {
                         }), true);
                         
                         return true;
-		} catch(IOException e) {
+		} 
+                catch(SocketTimeoutException ex){
+                    System.err.println(ex.getMessage());
+                    return false;
+                }
+                catch(IOException e) {
                         //resetControls();
                         //e.printStackTrace();
 			consoleWrite(R.string.get(R.string.failed_console,new String[]{((float) getCounter() / 1048576)+"", ((float) file.length() / 1048576)+"", ((((float) getCounter() / 1048576) / ((float) file.length() / 1048576))* 100)+""}), true);
@@ -1021,7 +1210,17 @@ if(files.size()>0){
  }
  return null;
     }
-    
+    private void addCia(String path){
+        //System.out.println(path+" --- Watch path file");
+        File f=new File(path);
+        if(f.getName().toLowerCase().endsWith(".cia")){
+           
+              System.out.println(f.getName());
+              
+            
+            
+        }
+    }
     private void openCiaChooser(Stage stage){
         ArrayList<File> ciaFiles=showCiaChooser(stage);
                 if(ciaFiles!=null){
@@ -1168,7 +1367,7 @@ if(files.size()>0){
         //box.getChildren().add(jLabel1);
         ipText.setPadding(new Insets(0,0,12,0));
         layout.addNodeAsDrawerItem(new HBox(ipText,timeoutVal));
-        updatePercentageCheck=new CheckBox();
+        updatePercentageCheck=new MaterialCheckBox();
         updatePercentageCheck.setSelected(true);
         updatePercentageCheck.setText(R.string.update_percentage);
         updatePercentageCheck.selectedProperty().addListener(new ChangeListener<Boolean>(){
@@ -1184,7 +1383,7 @@ if(files.size()>0){
                 }
             }
         });
-        updateBarCheck=new CheckBox();
+        updateBarCheck=new MaterialCheckBox();
         updateBarCheck.setSelected(true);
         updateBarCheck.selectedProperty().addListener(new ChangeListener<Boolean>(){
             @Override
@@ -1203,7 +1402,7 @@ if(files.size()>0){
         
         
         
-        updateCheck=new CheckBox();
+        updateCheck=new MaterialCheckBox();
         updateCheck.setSelected(true);
         updateCheck.setText(R.string.update_speed_text);
         updateCheck.selectedProperty().addListener(new ChangeListener<Boolean>(){
@@ -1219,7 +1418,7 @@ if(files.size()>0){
                 }
             }
         });
-          deleteCheck=new CheckBox();
+          deleteCheck=new MaterialCheckBox();
           //deleteCheck.setDisable(true);
         deleteCheck.setSelected(true);
         deleteCheck.setText(R.string.clear_completed);
@@ -1236,8 +1435,69 @@ if(files.size()>0){
                 }
             }
         });
+        
+        MaterialStandardDialog updateDialog=new MaterialStandardDialog() {
+            @Override
+            public void onPressedKey(KeyEvent event) {
+                
+                //To change body of generated methods, choose Tools | Templates.
+            }
+
+            @Override
+            public void onReleasedKey(KeyEvent event) {
+                 //To change body of generated methods, choose Tools | Templates.
+            }
+
+            @Override
+            public void onCreate(Pane pane) {
+                this.setCardPadding(new Insets(16));
                 VBox updateBox=new VBox(updatePercentageCheck,updateBarCheck, updateCheck,deleteCheck);
-                layout.addNodeAsDrawerItem(updateBox);
+                
+                addNode(updateBox);
+               /*MaterialButton updateClose= new MaterialButton(R.string.ok);
+               updateClose.setOnAction(new EventHandler<ActionEvent>(){
+                    @Override
+                    public void handle(ActionEvent event) {
+                        dismiss();
+                        //throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+                    }
+                });
+                addNode(updateClose);*/
+                 //To change body of generated methods, choose Tools | Templates.
+            }
+
+            @Override
+            public void onDialogShown() {
+                 //To change body of generated methods, choose Tools | Templates.
+            }
+
+            @Override
+            public void onDialogHidden() {
+                 //To change body of generated methods, choose Tools | Templates.
+            }
+
+            @Override
+            public void onDialogKeyReleased(KeyEvent event) {
+                 //To change body of generated methods, choose Tools | Templates.
+            }
+
+            @Override
+            public void onDialogKeyPressed(KeyEvent event) {
+                 //To change body of generated methods, choose Tools | Templates.
+            }
+        };
+                FlatButton updateButton=new FlatButton(R.string.settings);
+                
+                updateButton.setOnAction(new EventHandler<ActionEvent>(){
+            @Override
+            public void handle(ActionEvent event) {
+                updateDialog.unhide();
+                //throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+            }
+        });
+                        
+                
+                layout.addNodeAsDrawerItem(updateButton);
         //layout.addNodeAsDrawerItem(new VBox(updateCheck));
         
         
@@ -1323,13 +1583,10 @@ if(files.size()>0){
                     //progreso.setProgress(0.0f);
                     //progresoTexto.setText("0%");
                     //}
+                    consoleWrite(R.string.sending_info,true);
                     new MaterialToast(R.string.you_punched).unhide();
                 
-                }
-                else{
-                    new MaterialToast(R.string.open_first).unhide();
-                
-                }
+               
                         
                 BackgroundTask task=new BackgroundTask() {
                     @Override
@@ -1384,6 +1641,11 @@ if(files.size()>0){
         }
    };*/
                 task.play();
+                 }
+                else{
+                    new MaterialToast(R.string.open_first).unhide();
+                
+                }
                 }else{
                     new MaterialToast(R.string.check_fields).unhide();
                 }
@@ -1466,7 +1728,173 @@ if(files.size()>0){
             queueModel.removeElement(queueList.getSelectedValue());
         }
     }//GEN-LAST:event_queueListMouseClicked*/
+    private double orgSceneX=0, orgSceneY=0;
+    private double orgTranslateX=0, orgTranslateY=0;
+    private int pressedIndex=-1;
+    private double itemHeight=0;
+    
+    private int getIndexOfItem(MaterialStandardListItem<InstallableFile> item){
+        for(int i=0;i<queueList.size();i++){
+            if(queueList.getItemBox(i).equals(item)){
+                return i;
+            }
+        }
+        return -1;
+    }
+    
+    private EventHandler<MouseEvent> onCardPressed=new EventHandler<MouseEvent>(){
+        @Override
+        public void handle(MouseEvent event) {
+            orgSceneX=event.getSceneX();
+            orgSceneY=event.getSceneY();
+            orgTranslateX=((MaterialStandardListItem<InstallableFile>)event.getSource()).getTranslateX();
+            orgTranslateY=((MaterialStandardListItem<InstallableFile>)event.getSource()).getTranslateY();
+            pressedIndex=getIndexOfItem(((MaterialStandardListItem<InstallableFile>)event.getSource()));
+            itemHeight=(((MaterialStandardListItem<InstallableFile>)event.getSource()).getHeight());
+            //System.out.println(orgTranslateY+" y-move");
+            //System.out.println(((MaterialStandardListItem<InstallableFile>)event.getSource()).getLayoutY()+" y-layout");
+            //throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+        }
+    };
+    private void swapNodes(int index1, int index2){
+        boolean continuar=true;
+        if(index1>index2){
+            int aux=index2;
+            index2=index1;
+            index1=aux;
+        }
+        else if(index1==index2){
+            continuar=false;
+            System.err.println("Both indexes are the same. They should be different");
+        }
+        if(continuar){
+            MaterialStandardListItem<InstallableFile> item2=queueList.removeItem(index2);
+            MaterialStandardListItem<InstallableFile> item1=queueList.removeItem(index1);
+            queueList.insertItemAt(item2, index1);
+            queueList.insertItemAt(item1, index2);
+            
+        }
+            
+    }
+    private void moveOriginal(MaterialStandardListItem<InstallableFile> pressedItem,MaterialStandardListItem<InstallableFile> cycleItem, int indexToGo){
+        Timeline timeline=new Timeline();
 
+                        KeyValue kv1=new KeyValue(pressedItem
+                        .translateXProperty(),0);
+                        KeyValue kv2=new KeyValue(pressedItem
+                        .translateYProperty(),(indexToGo-pressedIndex)*itemHeight);
+                        KeyFrame kf=new KeyFrame(Duration.millis(130),kv2,kv1);
+                        timeline.getKeyFrames().add(kf);
+                        timeline.setOnFinished(new EventHandler<ActionEvent>(){
+                                @Override
+                                public void handle(ActionEvent event) {
+                                    pressedItem.setTranslateX(0);
+                                    pressedItem.setTranslateY(0);
+                                    cycleItem.setTranslateX(0);
+                                    cycleItem.setTranslateY(0);
+                                    swapNodes(indexToGo, pressedIndex);
+                                    
+                                    //queueList.insertItemAt(queueList.removeItem(draggedFile), 1);
+                                    //queueList.getItemBox(0).setTranslateY(0);
+                                    //queueList.getItemBox(0).setTranslateX(0);
+                                    //queueList.getItemBox(1).setTranslateY(0);
+                                    //queueList.getItemBox(1).setTranslateX(0);
+
+
+
+                                    //throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+                                }
+                            });
+                        timeline.play();
+    }
+    private void moveReplaced(MaterialStandardListItem<InstallableFile> cycleItem,MaterialStandardListItem<InstallableFile> releasedItem, int myIndex){
+        Timeline timeline=new Timeline();
+
+                        KeyValue kv2=new KeyValue(cycleItem
+                        .translateYProperty(),(pressedIndex-myIndex)*itemHeight);
+                        KeyFrame kf=new KeyFrame(Duration.millis(250),kv2);
+                        timeline.getKeyFrames().add(kf);
+                        timeline.setOnFinished(new EventHandler<ActionEvent>(){
+                                @Override
+                                public void handle(ActionEvent event) {
+                                    moveOriginal(releasedItem,cycleItem,myIndex);
+                                    //queueList.insertItemAt(queueList.removeItem(draggedFile), 1);
+                                    //queueList.getItemBox(0).setTranslateY(0);
+                                    //queueList.getItemBox(0).setTranslateX(0);
+                                    //queueList.getItemBox(1).setTranslateY(0);
+                                    //queueList.getItemBox(1).setTranslateX(0);
+
+
+
+                                    //throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+                                }
+                            });
+                        timeline.play();
+    }
+    private EventHandler<MouseEvent> onCardReleasedTest=new EventHandler<MouseEvent>(){
+        @Override
+        public void handle(MouseEvent event) {
+        MaterialStandardListItem<InstallableFile> releasedItem=((MaterialStandardListItem<InstallableFile>)event.getSource());
+            //System.out.println(releasedItem.getLayoutY()+" great layout Y");
+        }};
+    private EventHandler<MouseEvent> onCardReleased=new EventHandler<MouseEvent>(){
+        @Override
+        public void handle(MouseEvent event) {
+            
+            
+            
+            
+            MaterialStandardListItem<InstallableFile> releasedItem=((MaterialStandardListItem<InstallableFile>)event.getSource());
+            boolean replace=false;
+            //System.out.println(releasedItem.getTranslateY()+" y-released");
+                double newLayoutY=releasedItem.getLayoutY()+releasedItem.getTranslateY();
+                    
+            for(int i=0;i<queueList.size();i++){
+                if(!queueList.getItemBox(i).equals(releasedItem)){
+                    MaterialStandardListItem<InstallableFile> cycleItem=queueList.getItemBox(i);
+                    if(newLayoutY<cycleItem.getLayoutY()+33 && newLayoutY>cycleItem.getLayoutY()-33){
+                            replace=true;
+                            moveReplaced(cycleItem,releasedItem,i);
+                            
+                        }
+                }
+            }
+            if(!replace){
+                Timeline timeline=new Timeline();
+            KeyValue kv=new KeyValue(((MaterialStandardListItem<InstallableFile>)event.getSource())
+            .translateXProperty(),orgTranslateX);
+            KeyValue kv2=new KeyValue(((MaterialStandardListItem<InstallableFile>)event.getSource())
+            .translateYProperty(),orgTranslateY);
+            KeyFrame kf=new KeyFrame(Duration.millis(250),kv,kv2);
+            timeline.getKeyFrames().add(kf);
+            timeline.play();
+            }
+            
+            
+            
+            
+            //System.out.println(+" y-move");
+            
+            //throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+        }
+        
+    };
+    private EventHandler<MouseEvent> onCardDragged=new  EventHandler<MouseEvent>(){
+        @Override
+        public void handle(MouseEvent event) {
+            double offsetX=event.getSceneX()-orgSceneX;
+            double offsetY=event.getSceneY()-orgSceneY;
+            double newTranslateX=orgTranslateX+offsetX;
+            double newTranslateY=orgTranslateY+offsetY;
+            //System.out.println(newTranslateY+" y-dragged");
+            MaterialStandardListItem<InstallableFile> draggedFile=((MaterialStandardListItem<InstallableFile>)event.getSource());
+            draggedFile.setTranslateX(newTranslateX);
+            draggedFile.setTranslateY(newTranslateY);     
+            
+//throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+            
+        }
+    };
     private void saveLogChkActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_saveLogChkActionPerformed
         // TODO add your handling code here:
     }//GEN-LAST:event_saveLogChkActionPerformed

@@ -42,6 +42,7 @@ import javafx.stage.Stage;
 import javafx.stage.WindowEvent;
 import javafx.util.StringConverter;
 import org.utilities.Fecha;
+import socketpunch.languages.CustomMap;
 import socketpunch.languages.R;
 
 /**
@@ -110,7 +111,9 @@ public abstract class MainLayout extends MaterialEditableLayout {
             }
         },"Punch!").getIconButton().setIcon("punch_icon.png");*/
         
+       
     }
+    public abstract void onCheckUpdate();
     public abstract void removeCompletedFiles();
     public abstract void emptyList();
     public abstract void openCia();
@@ -192,8 +195,12 @@ public abstract class MainLayout extends MaterialEditableLayout {
                             return null;//throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
                         }
                     });
-                    languageSelector.addItem("English");
-                    languageSelector.addItem("Español");
+                    for(int i=0;i<CustomMap.languages.length;i++){
+                        languageSelector.addItem(CustomMap.languages[i]);
+                   
+                    
+                    }
+                    
                     File dir=new File("languages");
                     if(dir.exists() && dir.isDirectory()){
                         File[] fileList=dir.listFiles();
@@ -317,8 +324,12 @@ public abstract class MainLayout extends MaterialEditableLayout {
                             return null;//throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
                         }
                     });
-                    languageSelector.addItem("English");
-                    languageSelector.addItem("Español");
+                    for(int i=0;i<CustomMap.languages.length;i++){
+                        languageSelector.addItem(CustomMap.languages[i]);
+                   
+                    
+                    }
+                    
                     File dir=new File("languages");
                     if(dir.exists() && dir.isDirectory()){
                         File[] fileList=dir.listFiles();
@@ -386,7 +397,16 @@ public abstract class MainLayout extends MaterialEditableLayout {
         
         });
                  
-                 
+        menu.addItem(new MaterialDropdownMenuItem(R.string.update){
+            @Override
+            public void onItemClick(){
+              onCheckUpdate();
+            }
+            
+        
+        });
+        
+               
                  
         menu.addItem(new MaterialDropdownMenuItem(R.string.about){
             @Override
