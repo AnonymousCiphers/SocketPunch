@@ -40,6 +40,14 @@ public class R {
         public static String update_available=getInternalLanguageFile().getString("update_available");
         public static String connection_failed=getInternalLanguageFile().getString("connection_failed");
         public static String settings=getInternalLanguageFile().getString("settings");
+        public static String send_cancelled_remote=getInternalLanguageFile().getString("send_cancelled_remote");
+        public static String sending_file_info=getInternalLanguageFile().getString("sending_file_info");
+        public static String legacy_mode=getInternalLanguageFile().getString("legacy_mode");
+        public static String newest_mode=getInternalLanguageFile().getString("newest_mode");
+        public static String legacy_compatible=getInternalLanguageFile().getString("legacy_compatible");
+        public static String newest_compatible=getInternalLanguageFile().getString("newest_compatible");
+        
+        
         private static String getLanguageName(){
             if(languageName==null){
                 try {
@@ -110,6 +118,7 @@ public class R {
                                 .trim().toLowerCase().replace("(","").replace(")","")).replace(" ", "_");
                         System.out.println(languageFileName);
                         in = R.class.getResourceAsStream("/socketpunch/languages/files/"+languageFileName+".txt");
+                        System.out.println(languageFileName+" langName");
                         //inUTF8 = new  InputStreamReader(in,"UTF8");
                         input = new BufferedReader(new  InputStreamReader(in,"UTF8"));
                         input.lines().forEach(new Consumer<String>(){
@@ -278,9 +287,11 @@ public class R {
         public static String export_language=getInternalLanguageFile().getString("export_language");
         public static String text_file=getInternalLanguageFile().getString("text_file");
         public static String export=getInternalLanguageFile().getString("export");
-        public static String version="v1.0.5";
+        public static String version="v1.2.5";
         public static String retrieve_update=getInternalLanguageFile().getString("retrieve_update");
         public static String update_warning=getInternalLanguageFile().getString("update_warning");
+        public static String show_details=getInternalLanguageFile().getString("show_details");
+        public static String hide_details=getInternalLanguageFile().getString("hide_details");
         
         public static String show_progress_options=getInternalLanguageFile().getString("show_progress_options");
         public static void saveExportFile(String language){

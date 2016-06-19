@@ -53,8 +53,9 @@ public abstract class MainLayout extends MaterialEditableLayout {
     
     public void reselectUser(){};
     public MainLayout(){
-        super("",false,false,true);
+        super(true);
         setDrawerWidth(300);
+        
         
         addToolbarActionButton(MaterialIconButton.RESTORE_ICON,new EventHandler<ActionEvent>(){
             @Override
@@ -102,6 +103,37 @@ public abstract class MainLayout extends MaterialEditableLayout {
                 //throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
             }
         },R.string.open_files);
+        
+        addToolbarActionButton(MaterialIconButton.MORE_VERT_ICON,new EventHandler<ActionEvent>(){
+            @Override
+            public void handle(ActionEvent event) {
+                 
+                
+                MaterialDropdownMenu clearMenu=new MaterialDropdownMenu((Region)event.getSource());
+                clearMenu.addItem(new MaterialDropdownMenuItem(R.string.settings){
+                    @Override
+                    public void onItemClick(){
+                        showSettings();
+                    }
+                
+                
+                });
+                 clearMenu.addItem(new MaterialDropdownMenuItem(R.string.update){
+            @Override
+            public void onItemClick(){
+              onCheckUpdate();
+            }
+            
+        
+        });
+                
+                
+                clearMenu.unhide();
+               
+                
+                //throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+            }
+        });
        /* addToolbarActionButton(MaterialIconButton.REFRESH_ICON,new EventHandler<ActionEvent>(){
             @Override
             public void handle(ActionEvent event) {
@@ -116,6 +148,7 @@ public abstract class MainLayout extends MaterialEditableLayout {
     public abstract void onCheckUpdate();
     public abstract void removeCompletedFiles();
     public abstract void emptyList();
+    public abstract void showSettings();
     public abstract void openCia();
     public abstract void punch();
     public abstract void resetQueue();
@@ -397,14 +430,7 @@ public abstract class MainLayout extends MaterialEditableLayout {
         
         });
                  
-        menu.addItem(new MaterialDropdownMenuItem(R.string.update){
-            @Override
-            public void onItemClick(){
-              onCheckUpdate();
-            }
-            
-        
-        });
+       
         
                
                  

@@ -12,6 +12,7 @@ import com.olmectron.material.components.MaterialDisplayText;
 import com.olmectron.material.components.MaterialDropdownMenu;
 import com.olmectron.material.components.MaterialDropdownMenuItem;
 import com.olmectron.material.components.MaterialFloatingButton;
+import com.olmectron.material.components.MaterialFlowList;
 import com.olmectron.material.components.MaterialIconButton;
 import com.olmectron.material.components.MaterialLabel;
 import com.olmectron.material.components.MaterialProgressBar;
@@ -21,6 +22,7 @@ import javafx.application.Application;
 import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
 import javafx.scene.Scene;
+import org.w3c.dom.NodeList;
 import javafx.scene.control.Button;
 import javafx.scene.layout.StackPane;
 import javafx.stage.Stage;
@@ -31,6 +33,7 @@ import com.olmectron.material.components.MaterialTextField;
 import com.olmectron.material.components.MaterialToast;
 import com.olmectron.material.components.MaterialTooltip;
 import com.olmectron.material.components.RaisedButton;
+import com.olmectron.material.components.menu.MaterialMenuItem;
 import com.olmectron.material.constants.MaterialColor;
 import com.olmectron.material.files.FieldsFile;
 import com.olmectron.material.files.TextFile;
@@ -43,6 +46,7 @@ import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.BufferedWriter;
 import java.io.ByteArrayInputStream;
+import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
@@ -88,7 +92,9 @@ import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
 import javafx.scene.control.CheckBox;
+import javafx.scene.control.RadioButton;
 import javafx.scene.control.ScrollPane;
+import javafx.scene.control.ToggleGroup;
 import static javafx.scene.input.DataFormat.URL;
 import javafx.scene.input.DragEvent;
 import javafx.scene.input.Dragboard;
@@ -96,6 +102,7 @@ import javafx.scene.input.KeyEvent;
 import javafx.scene.input.MouseButton;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.input.TransferMode;
+import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Pane;
 import javafx.scene.layout.Priority;
@@ -156,7 +163,8 @@ public class SocketPunch extends Application {
             @Override
             public void removeCompletedFiles(){
                 int counter=0;
-                 for(int i=0;i<queueList.size();i++){
+                
+                 for(int i=queueList.size()-1;i>0;i--){
                             if(queueList.getItem(i).isTransferComplete()){
                                 queueList.removeItem(queueList.getItemBox(i));
                                 counter++;
@@ -237,7 +245,17 @@ public class SocketPunch extends Application {
 
             @Override
             public void onCheckUpdate() {
-                checkForUpdates(true);//throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+                Updater.checkForUpdates(true);//throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+            }
+
+            @Override
+            public void showSettings() {
+                
+                
+          
+                updateDialog.unhide();
+          
+                //throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
             }
         };
         layout.setRootView(initAll(primaryStage));
@@ -246,7 +264,7 @@ public class SocketPunch extends Application {
         
        transparentContainer.getStyleClass().add("full-transparent-container");
        
-        Scene scene = new Scene(layout, 800,500);
+        Scene scene = new Scene(layout, 1050,600);
         scene.setOnDragOver(new EventHandler<DragEvent>() {
             @Override
             public void handle(DragEvent event) {
@@ -310,13 +328,13 @@ public class SocketPunch extends Application {
         
         //initDirectoryWatcher();
         
-        primaryStage.setResizable(false);
+        //primaryStage.setResizable(false);
        layout.setTitle(R.string.app_title+" "+R.string.version);
        
         primaryStage.setOnShown(new EventHandler<WindowEvent>(){
             @Override
             public void handle(WindowEvent event) {
-                    checkForUpdates(false);
+                    Updater.checkForUpdates(false);
        
                 //throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
             }
@@ -324,126 +342,8 @@ public class SocketPunch extends Application {
         primaryStage.show();
        
     }
-    private void checkForUpdates(boolean showIfUpdated){
-       
-           BackgroundTask updateTask=new BackgroundTask(){
-               String latestVersion=null;
-               @Override
-               public Object onAction() {
-                
-                   HTTPReader readURL=new HTTPReader("http://olmectron.github.io/socket_update.html");
-                   readURL.setShowNetworkFailedToast(showIfUpdated);
-                   readURL.setNetworkFailedMessage(R.string.connection_failed); 
-                   latestVersion=readURL.readFile();
-                  
-                    return null;
-                   //throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
-               }
-
-               @Override
-               public void onSucceed(Object valor) {
-                   if(latestVersion!=null && latestVersion.trim().toLowerCase().startsWith("v") && !latestVersion.toLowerCase().trim().equals(R.string.version)){
-                       FlatButton updateButton=new FlatButton(R.string.update);
-                       
-                       MaterialToast updateToast=new MaterialToast(R.string.get(R.string.update_available, latestVersion.trim()),updateButton,MaterialToast.LENGTH_UNDEFINED){
-                           @Override
-                           public void onButtonClicked(){
-                               if(!startedSending){
-                                   new MaterialToast(R.string.retrieve_update,MaterialToast.LENGTH_UNDEFINED).unhide();
-                                   new BackgroundTask(){
-                                       @Override
-                                       public Object onAction() {
-                                           startUpdate();
-                                           return null;
-                                           //throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
-                                       }
-
-                                       @Override
-                                       public void onSucceed(Object valor) {
-                                           //throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
-                                       }
-                                   }.play();
-                                           
-                               
-                               }
-                               else{
-                                   new MaterialToast(R.string.update_warning).unhide();
-                               }
-                               //System.out.println("Actualizando...");
-                           }
-                       
-                       };
-                       updateToast.unhide();
-                   
-                   }
-                   else if(latestVersion!=null && latestVersion.toLowerCase().trim().equals(R.string.version)){
-                       if(showIfUpdated)
-                       new MaterialToast(R.string.already_updated).unhide();
-                   }
-                   //throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
-               }
-           };
-           updateTask.play();
-            
-      
-    }
-    private void startUpdate(){
-        try {
-            File jarFile=new File("updater/AppUpdater.jar");
-            if(jarFile.exists()){
-                Process process = Runtime.getRuntime().exec("java -jar updater/AppUpdater.jar");
-                if(process.isAlive()){
-                    System.exit(0);
-                }
-            }
-            else{
-                File dir=new File("updater");
-                if(!dir.exists()){
-                    dir.mkdir();
-                }
-                HTTPReader downloader=new HTTPReader("http://olmectron.github.io/AppUpdater.jar"){
-                    @Override
-                    public void onFileDownloaded(){
-                        File exe=new File("../SocketPunch.exe");
-                        if(exe.exists()){
-                            
-                            TextFile file=new TextFile("SocketPunch.cfg");
-                            file.setText(file.getText().replace("SocketPunch.jar", "updater/AppUpdater.jar").
-                                    replace("socketpunch/SocketPunch","appupdater/AppUpdater"));
-                          
-                            
-                        try {
-                            Process process = Runtime.getRuntime().exec("../SocketPunch.exe");
-                if(process.isAlive()){
-                    System.exit(0);
-                }
-                        } catch (IOException ex) {
-                            Logger.getLogger(SocketPunch.class.getName()).log(Level.SEVERE, null, ex);
-                        }
-                            
-                        }
-                        else{
-                        try {
-                            Process process = Runtime.getRuntime().exec("java -jar updater/AppUpdater.jar");
-                if(process.isAlive()){
-                    System.exit(0);
-                }
-                        } catch (IOException ex) {
-                            Logger.getLogger(SocketPunch.class.getName()).log(Level.SEVERE, null, ex);
-                        }
-                        
-                        }
-                    }
-                };
-                downloader.downloadFile("updater");
-                
-            }
-            
-            
-        } catch (IOException ex) {
-            Logger.getLogger(SocketPunch.class.getName()).log(Level.SEVERE, null, ex);
-        }
-    }
+    
+    
     private void initDirectoryWatcher(){
         try {
         File dir=new File("cia");
@@ -493,32 +393,94 @@ watchThread.start();
     String CONST_PATH = System.getProperty("user.dir") + "\\log.txt";
     String CONST_SETTING_PATH = System.getProperty("user.dir") + "\\config.txt";
     String NEWLINE = System.getProperty("line.separator");
-
+    static String CTR="4354522D";
+    static String GUION="2D";
+    static String NCCH="4E434348";
+    static String CTAP="43544150";
     //private MaterialStandardList<String> dirList;
-    private MaterialStandardList<InstallableFile> queueList;
+    private MaterialFlowList<InstallableFile> queueList;
     boolean startedSending = false;
     int transferCount = 0;
     int failCount = 0;
-    int bufferSize = 128;
+    int bufferSize = 256;
+    private XMLReader dbReader;
+           public XMLReader getDatabaseReader(){
+               if(dbReader==null){
+                   dbReader=new XMLReader() {
+                       @Override
+                       public void onElementFound(MaterialStandardListItem<InstallableFile> item) {
+                           //MaterialCard card=(MaterialCard)item.lookup("#the_card");
+                           FileInfoPane p=new FileInfoPane(item.getItem());
+                           outPane.setRight(p);
+                           //card.addComponent(p);
+                           //System.out.println("Name: "+foundFile.getName());
+                           //System.out.println("Serial: "+foundFile.getSerial());
+                           //System.out.println("Region: "+foundFile.getRegion());
+                           
+                           //System.out.println("Languages: "+foundFile.getLanguages());
+                           
+                           //throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+                       }
+                   };
+               }
+               return dbReader;
+           }
     public void reprintConsoleBuffer(){
            
         consoleWrite(R.string.get(R.string.buffer_set,Integer.toString(bufferSize)+""), true);
         
         }
+    public static String getStringFromHex(String hex){
+        if(hex.length()%2!=0){
+            System.out.println(hex.length()%2+" "+hex);
+            return null;
+        }
+        else{
+            String result="";
+            for(int i=0;i<hex.length();i+=2){
+                String hexPair=hex.substring(i,i+2);
+                if(!hexPair.equals("00")){
+                    char newChar=(char)getIntFromHex(hexPair);
+                    result=result+String.valueOf(newChar);
+                }
+            }
+            return result;
+        }
+    }
+    public static int getIntFromHex(String hex){
+        if(!hex.startsWith("0x")){
+            return Integer.decode("0x"+hex);
+        }
+        else{
+            return Integer.decode(hex);
+        }
+    }
 
+    private String findSerial(String searchBlock){
+        int start=searchBlock.indexOf(NCCH);
+        String CTRBlock=searchBlock.substring(start+(0x50*2), start+(0x50*2)+(0x0A*2));
+        if(CTRBlock.startsWith(CTR) && CTRBlock.substring(10,12).equals(GUION)){
+            return getStringFromHex(CTRBlock);
+        }
+        
+        return null;
+    }
     public Pane initAll(Stage st) {
         st.setTitle("SocketPunch MOD "+R.string.version);
         StackPane root = new StackPane();
         
-        queueList=new MaterialStandardList<InstallableFile>(root) {
+        queueList=new MaterialFlowList<InstallableFile>(root) {
         @Override
         public void onItemClick(InstallableFile item, MouseEvent event) {
-            
             
         }
         @Override
         public void onItemContainerClick(MaterialStandardListItem<InstallableFile> itemBox,MouseEvent event){
             //MaterialDisplayText tb = (MaterialDisplayText) itemBox.lookup("#progresoTexto");
+            String detailString=R.string.show_details;
+            if(itemBox.getItem().isShowingDetails()){
+                detailString=R.string.hide_details;
+            }
             if(event.getButton().equals(MouseButton.SECONDARY)){
                 MaterialDropdownMenu dropdown=new MaterialDropdownMenu(event.getScreenX(),event.getScreenY());
                 dropdown.addItem(new MaterialDropdownMenuItem(R.string.delete_queue_item){
@@ -526,6 +488,15 @@ watchThread.start();
                     public void onItemClick(){
                         //if(!startedSending){
                             queueList.removeItem(itemBox);
+                        //}
+                    }
+                });
+                dropdown.addItem(new MaterialDropdownMenuItem(detailString){
+                    @Override
+                    public void onItemClick(){
+                        getDatabaseReader().findTitleId(itemBox);
+                        //if(!startedSending){
+                            //queueList.removeItem(itemBox);
                         //}
                     }
                 });
@@ -541,9 +512,24 @@ watchThread.start();
             
             File item=it.getFile();
             String hex="";
+            String serial="";
+                String titleId="";
             RandomAccessFile raf = null;
             try {
                 raf = new RandomAccessFile(item, "r");
+                raf.seek(0x2C1C);
+                for(int i=0;i<8;i++){
+                    int part=raf.readByte();
+                    if(part<0){
+                        part= part & 0xff;
+                    }
+                    String hexPart=Integer.toHexString(part);
+                    if(hexPart.length()==1){
+                        hexPart="0"+hexPart;
+                    }
+                    titleId=titleId+hexPart;
+                }
+                titleId=titleId.toUpperCase();
                 raf.seek(0x2C20);
                 
                 for(int i=0;i<4;i++){
@@ -560,6 +546,21 @@ watchThread.start();
                 if(hex.endsWith("00")){
                     hex=hex.substring(0,hex.length()-2);
                 }
+                raf.seek(0x3000);
+                String search="";
+                for(int i=0;i<0x1000;i++){
+                    int part=raf.readByte();
+                    if(part<0){
+                        part= part & 0xff;
+                    }
+                    String hexPart=Integer.toHexString(part).toUpperCase();
+                    if(hexPart.length()==1){
+                        hexPart="0"+hexPart;
+                    }
+                    search=search+hexPart;
+                }
+                serial=findSerial(search);
+                
             } catch (FileNotFoundException ex) {
                 Logger.getLogger(SocketPunch.class.getName()).log(Level.SEVERE, null, ex);
             } catch (IOException ex) {
@@ -572,10 +573,12 @@ watchThread.start();
                     Logger.getLogger(SocketPunch.class.getName()).log(Level.SEVERE, null, ex);
                 }
             }
+            it.setSerial(serial);
+            it.setTitleId(titleId);
              // Goes to 400th byte.
             
             MaterialCard card=new MaterialCard();
-            
+            card.setId("the_card");
             
             MaterialDisplayText texto=new MaterialDisplayText(item.getName());
             //MaterialTooltip tooltip=new MaterialTooltip(item.getName(),texto);
@@ -597,7 +600,11 @@ watchThread.start();
             
             progText.setFontWeight(FontWeight.MEDIUM);
             progText.setId("progresoTexto");
+            //MaterialDisplayText hexText=new MaterialDisplayText(titleId);
             MaterialDisplayText hexText=new MaterialDisplayText(R.string.get(R.string.initial_code, "0x"+hex.toUpperCase()));
+            if(it.getSerial()!=null){
+                hexText.setText(hexText.getText()+" "+it.getSerial());
+            }
             //hexText.setMinWidth(62);
             hexText.setFontSize(12);
             hexText.setColorCode(MaterialColor.material.BLACK_54);
@@ -633,7 +640,8 @@ watchThread.start();
                     //card.setExactWidth(newValue.doubleValue());
                 }
             });
-            card.setCardWidth(1000);
+            card.setCardWidth(500);
+            //card.setExactWidth(orgSceneX);
             //card.setCardWidth(2000);
             return card;
             //throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
@@ -724,9 +732,16 @@ watchThread.start();
         });
        //c.setPrefWidth(p.getPrefViewportWidth());
        p.getStyleClass().add("material-scroll");
-        pane.setRootComponent(p);
+       
+         outPane=new BorderPane();
+         outPane.setCenter(p);
+         
+          pane.setRootComponent(outPane);
+          
         return pane;
     }
+    
+    private BorderPane outPane;
     private ArrayList<String> loadIPAddresses(){
         Preferences prefs = Preferences.userNodeForPackage(SocketPunch.class);
      String ipAddresses = prefs.get("ipAddresses", null);
@@ -769,7 +784,7 @@ watchThread.start();
             FieldsFile fieldFile=new FieldsFile("config.txt");
             if(!fieldFile.exists() || fieldFile.isEmpty()){
                 //fieldFile.createNewFile();
-                fieldFile.addField("buffersize", "128");
+                fieldFile.addField("buffersize", "256");
                 fieldFile.addField("savelog", "true");
                 fieldFile.addField("ip",ipText.getText());
                 fieldFile.addField("update","true,true,true");
@@ -795,8 +810,15 @@ watchThread.start();
                     updateCheck.setSelected(true);
                     deleteCheck.setSelected(false);
                 }
-                    bufferSize=Integer.parseInt(fieldFile.getValue("buffersize","128"));
-                ipText.setText(fieldFile.getValue("ip",ipText.getText()));
+                bufferSize=Integer.parseInt(fieldFile.getValue("buffersize","256"));
+                
+                    if(fieldFile.getValue("first_time","true").equals("true")){
+                        fieldFile.setValue("buffersize", "256");
+                        bufferSize=256;
+                        fieldFile.setValue("first_time","false");
+                    }
+                    
+                    ipText.setText(fieldFile.getValue("ip",ipText.getText()));
                 saveLogChk.setSelected(Boolean.parseBoolean(fieldFile.getValue("savelog","true")));
                 lastDir=fieldFile.getValue("lastdir",System.getProperty("user.dir"));
             }
@@ -997,13 +1019,518 @@ watchThread.start();
         counterProperty().set(val);
     }
     private boolean deleteWasSelected=false;
-    public boolean connect(InstallableFile iFile, MaterialProgressBar progressBar, MaterialDisplayText progressText, MaterialDisplayText speedText,MaterialStandardListItem<InstallableFile> container){
+    
+    //Sockfile 2.0 socket method
+    //startSteveStream()
+    //Original from Steveice10. Thanks a lot!
+    private void startSteveStream(){
+        Socket socket = null;
+        DataInputStream in = null;
+        DataOutputStream out = null;
+        BufferedOutputStream bos=null;
+        ArrayList<MaterialStandardListItem<InstallableFile>> sendItems=new ArrayList<>();
+        for(int i=0;i<queueList.size();i++){
+            if(!queueList.getItem(i).isTransferComplete()){
+                sendItems.add(queueList.getItemBox(i));
+            }
+        }
+        try {
+            socket = new Socket(ipText.getText(), 5000);
+            in = new DataInputStream(socket.getInputStream());
+            out = new DataOutputStream(socket.getOutputStream());   
+            bos=new BufferedOutputStream(out,bufferSize);
+            out.writeInt(sendItems.size());
+        } catch(IOException e) {
+            try {
+                socket.close();
+            } catch(Exception e1) {
+            }
+
+            //System.err.println("Failed to open socket and send header.");
+            System.err.println(R.string.open_socket_failed);
+            e.printStackTrace();
+            return;
+        }
+
+        System.out.println(R.string.sending_info);
+        
+        
+        for(int i = 0; i < sendItems.size(); i++) {
+            FileInputStream fileIn = null;
+            MaterialProgressBar progressBar=(MaterialProgressBar)sendItems.get(i).lookup("#progreso");
+MaterialDisplayText progressText=(MaterialDisplayText)sendItems.get(i).lookup("#progresoTexto");
+MaterialDisplayText speedText=(MaterialDisplayText)sendItems.get(i).lookup("#velocidadTexto");   
+            BufferedInputStream bis=null;
+            long fileLength=0;
+            try {
+                 File file = sendItems.get(i).getItem().getFile();
+                 fileLength=file.length();
+                /*if(!file.exists()) {
+                    System.err.println("File \"" + file.getName() + "\" does not exist.");
+                    continue;
+                }*/
+
+                int ack = in.readByte();
+                if(ack == 0) {
+                    
+                    System.out.println(R.string.send_cancelled_remote);
+                    consoleWrite(R.string.send_cancelled_remote,true);
+                
+                    Platform.runLater(new Runnable(){
+                        @Override
+                        public void run() {
+                     
+                    new MaterialToast(R.string.send_cancelled_remote).unhide();
+                        }});
+                    break;
+                }
+                fileIn = new FileInputStream(file);
+                bis=new BufferedInputStream(fileIn);
+                //System.out.println("Sending info for \"" + file.getName() + "\"...");
+                consoleWrite(R.string.get(R.string.sending_file_info, file.getName()),true);
+                
+                out.writeLong(file.length());
+
+                //System.out.println("Sending data for \"" + file.getName() + "\"...");
+                consoleWrite(R.string.get(R.string.sending_file, new DecimalFormat("0.00").format(((float) file.length() / 1048576))),true);
+                byte buffer[] = new byte[1024 * 256];
+                int length = 0;
+                counterProperty().set(0);
+                final long start = System.currentTimeMillis();
+                long startTime = System.nanoTime();
+                while((length = bis.read(buffer)) != -1) {
+                    bos.write(buffer, 0, length);
+                    
+                    counterProperty().set(counterProperty().get() + length);
+                    Platform.runLater(new Runnable(){
+                        @Override
+                        public void run() {
+                            if(updatePercentageCheck.isSelected()){
+                                                progressText.setText((int)((((float) getCounter() / 1048576) / ((float) file.length() / 1048576))* 100)+"%");
+                                            
+                                            }
+                             if(updateBarCheck.isSelected()){
+                                        progressBar.setProgress((double)getCounter()/(double)file.length());
+                                    
+                                    }
+                            if(updateCheck.isSelected()){
+                               
+               
+                
+                                            
+                                                long cost = System.currentTimeMillis() - start;
+                                                //long costFrame=System.currentTimeMillis()-costProperty().get();
+                                                //costProperty().set(System.currentTimeMillis()); Remove comment for checking speed per text update
+                                               //DecimalFormat dc = new DecimalFormat("0.00");
+                                               double dProgress=(float) getCounter() / 1048576;
+                                               String formattedProgress = dc.format(dProgress);
+                                               double dTotal=(float) file.length() / 1048576;
+                                               String formattedTotal=dc.format(dTotal);
+                                               long lSpeed=(getCounter()/cost);
+                                               
+                                               double secondsLeft=((double)(dTotal*1000)-(double)(dProgress*1000))/(double)lSpeed;
+                                               Hora hora=new Hora((int)secondsLeft);
+                                               
+                                               //speedText.setText(formattedProgress+"MB of "+formattedTotal+"MB at "+(lengthProperty().get()/cost)+"KB/s");
+                                               
+                                               //speedText.setText(hora.getAndroidLikeMinutesFormat()+" minutes left, "+formattedProgress+"MB of "+formattedTotal+"MB at "+lSpeed+"KB/s");
+                                            
+                                               speedText.setText(R.string.get(R.string.speed_update, new String[]{hora.getAndroidLikeMinutesFormat(),
+                                               formattedProgress,formattedTotal,lSpeed+""}));
+                                            }
+                            //throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+                        }
+                    });
+                    
+                }
+                
+                
+                long endTime = System.nanoTime()-startTime;
+                        //resetControls();
+                        Hora segundosTranscurridos=new Hora((int)(endTime/ 1e9));
+                        String minutes=segundosTranscurridos.getAndroidLikeMinutesFormat();
+                        //String minutes=dc.format(/60);
+                        String size=dc.format((float) file.length() / 1048576);
+                        
+                sendItems.get(i).getItem().setTransferComplete(true);
+                Platform.runLater(new Runnable(){
+                    @Override
+                    public void run() {
+                        speedText.setText(R.string.get(R.string.successful_transfer,new String[]{
+                                size,
+                                    minutes,
+                                    
+                                (file.length()/(System.currentTimeMillis()-start))+""
+                                
+                                }));
+                        //throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+                    }
+                });
+                //System.out.println("File \"" + file.getName() + "\" sent successfully.");
+                
+                
+                 consoleWrite(R.string.get(R.string.successful_console,new String[]{
+                        file.getName(),
+                        minutes,
+                        (file.length()/(System.currentTimeMillis()-start))+""
+                        }), true);
+                 
+                if(i == sendItems.size() - 1) {
+                    //System.out.println("All files sent successfully.");
+                    consoleWrite(R.string.queue_finished, true);
+                    Platform.runLater(new Runnable(){
+                        @Override
+                        public void run() {
+                            new MaterialToast(R.string.queue_finished).unhide();
+                            //throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+                        }
+                    });
+                     
+                    
+                }
+            } catch(IOException e) {
+                //System.err.println("Failed to send file \"" + sendItems.get(i).getItem().getFile().getName() + "\".");
+                String text=R.string.get(R.string.failed_console,new String[]{((float) getCounter() / 1048576)+"", ((float) fileLength / 1048576)+"", ((((float) getCounter() / 1048576) / ((float) fileLength / 1048576))* 100)+""});
+			consoleWrite(text, true);
+                        
+                        Platform.runLater(new Runnable(){
+                            @Override
+                            public void run() {
+                                new MaterialToast(text).unhide();
+                        
+                                speedText.setText(text);
+                                speedText.setColorCode(MaterialColor.material.RED);
+                            }
+                        });
+                e.printStackTrace();
+                return;
+            } finally {
+                try {
+                    
+                    fileIn.close();
+                    bis.close();
+                    
+                } catch(Exception e) {
+                }
+            }
+        }
+
+        try {out.close();
+                    bos.close();
+            socket.close();
+        } catch(Exception e) {
+        }
+    }private static DecimalFormat dc=new DecimalFormat("0.00");
+    public void startStreaming(){
+		// Create socket
+                //File file=iFile.getFile();
+                Socket socket=null;
+                DataOutputStream out=null;
+                DataInputStream in=null;
+                BufferedOutputStream bos=null;
+                //PrintStream ps;
+               try {
+			socket = new Socket(ipText.getText(), 5000);
+                        //socket.setSendBufferSize(bufferSize);
+                        //socket.setSoTimeout(20000);
+                       in =new DataInputStream(socket.getInputStream());
+			out = new DataOutputStream(socket.getOutputStream());
+                        bos=new BufferedOutputStream(out,bufferSize);
+                                  //ps=new PrintStream(bos, false);
+                        out.writeInt(queueList.size());
+		}catch(IOException e) {
+                        // Only get 1 failed to open socket per file, else just say retrying
+                        if(failCount == 0){
+                            
+                            consoleWrite(R.string.open_socket_failed, true);
+                        } else {
+                            consoleWrite(R.string.retrying_transfer, true);
+                        }
+			
+			//resetControls();
+		}
+       
+                // Open file for streaming
+		MaterialStandardListItem<InstallableFile> installContainer=hasInstallableFilesUncomplete(queueList);
+                while(installContainer!=null){
+                    File file=installContainer.getItem().getFile();
+                    
+MaterialProgressBar progressBar=(MaterialProgressBar)installContainer.lookup("#progreso");
+MaterialDisplayText progressText=(MaterialDisplayText)installContainer.lookup("#progresoTexto");
+MaterialDisplayText speedText=(MaterialDisplayText)installContainer.lookup("#velocidadTexto");                  
+                    
+                    
+                BufferedInputStream bis;
+                FileInputStream fis;
+		try {
+                    /*int ack=in.readByte();
+                    if(ack==0){
+                        new MaterialToast(R.string.send_cancelled_remote);
+                    }*/
+			fis= new FileInputStream(file);
+                         bis=           new BufferedInputStream(in); 
+		} catch(IOException e) {
+			consoleWrite(R.string.file_stream_failed, true);
+                        //resetControls();
+                        continue;
+			//return false;
+		}
+                // Send file
+                counterProperty().set(0);
+                //long counter = 0;
+                int updateCount = 0;
+                
+			DecimalFormat dc=new DecimalFormat("0.00");
+                        
+		try {
+			consoleWrite(R.string.sending_info, true);
+			out.writeLong(file.length());
+                        //out.flush();
+                        //progBar.((int) file.length());
+			consoleWrite(R.string.get(R.string.sending_file,((float) file.length() / 1048576)+""), true);
+			byte buffer[] = new byte[1024 * bufferSize];
+			int length;
+                        costProperty().set(System.currentTimeMillis());
+                        lengthProperty().set(0);
+                        //total.set(0);
+                        
+                        final long start = System.currentTimeMillis();
+                        long startTime = System.nanoTime();
+                 
+			while((length = bis.read(buffer)) != -1) {
+				bos.write(buffer, 0, length);
+                                //bos.flush();
+                                //total.set(total.get()+length);
+                                //if(updateCheck.isSelected()){
+                                //    lengthProperty().set(length);
+                                    
+                                //}
+                                counterProperty().set(counterProperty().get() + length);
+                                // Left this in just incase
+                                if(updateCount < 0){
+                                    updateCount++;
+                                } else {
+                                    updateCount = 0;
+                                    if(updateBarCheck.isSelected()){
+                                        progressBar.setProgress((double)getCounter()/(double)file.length());
+                                    
+                                    }
+                                    
+                                    Platform.runLater(new Runnable(){
+                                        @Override
+                                        public void run() {
+                                            if(updatePercentageCheck.isSelected()){
+                                                progressText.setText((int)((((float) getCounter() / 1048576) / ((float) file.length() / 1048576))* 100)+"%");
+                                            
+                                            }
+                                            
+                                            
+                                            if(updateCheck.isSelected()){
+                                                long cost = System.currentTimeMillis() - start;
+                                                //long costFrame=System.currentTimeMillis()-costProperty().get();
+                                                //costProperty().set(System.currentTimeMillis()); Remove comment for checking speed per text update
+                                               //DecimalFormat dc = new DecimalFormat("0.00");
+                                               double dProgress=(float) getCounter() / 1048576;
+                                               String formattedProgress = dc.format(dProgress);
+                                               double dTotal=(float) file.length() / 1048576;
+                                               String formattedTotal=dc.format(dTotal);
+                                               long lSpeed=(getCounter()/cost);
+                                               
+                                               double secondsLeft=((double)(dTotal*1000)-(double)(dProgress*1000))/(double)lSpeed;
+                                               Hora hora=new Hora((int)secondsLeft);
+                                               
+                                               //speedText.setText(formattedProgress+"MB of "+formattedTotal+"MB at "+(lengthProperty().get()/cost)+"KB/s");
+                                               
+                                               //speedText.setText(hora.getAndroidLikeMinutesFormat()+" minutes left, "+formattedProgress+"MB of "+formattedTotal+"MB at "+lSpeed+"KB/s");
+                                            
+                                               speedText.setText(R.string.get(R.string.speed_update, new String[]{hora.getAndroidLikeMinutesFormat(),
+                                               formattedProgress,formattedTotal,lSpeed+""}));
+                                            }
+                                            
+                                            //progressText.setText(String.format("%.2fmb of %.2fmb @ %.2f%%",(float) getCounter() / 1048576, (float) file.length() / 1048576, (((float) getCounter() / 1048576) / ((float) file.length() / 1048576))* 100));
+                                        
+                                            //throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+                                        }
+                                    });
+                                    
+                            }
+                        }
+                        long endTime = System.nanoTime()-startTime;
+                        //resetControls();
+                        Hora segundosTranscurridos=new Hora((int)(endTime/ 1e9));
+                        String minutes=segundosTranscurridos.getAndroidLikeMinutesFormat();
+                        //String minutes=dc.format(/60);
+                        String size=dc.format((float) file.length() / 1048576);
+                        //deleteWasSelected=deleteCheck.isSelected();
+                        Platform.runLater(new Runnable(){
+                            @Override
+                            public void run() {
+                                //speedText.setText(size+"MB sent successfully in "+minutes+" minutes at average "+(file.length()/(System.currentTimeMillis()-start))+"KB/s");
+                                speedText.setText(R.string.get(R.string.successful_transfer,new String[]{
+                                size,
+                                    minutes,
+                                    
+                                (file.length()/(System.currentTimeMillis()-start))+""
+                                
+                                }));
+                                progressText.setText("100%");
+                                progressBar.setProgress(1.0f);
+                                if(deleteCheck.isSelected() ){
+                        
+                                    queueList.removeItem(installContainer);
+                        
+                                }
+                                //if(deleteWasSelected){
+                                //    container.setVisible(false);
+                                            //queueList.removeItem(container);
+                                           
+                                //}
+                                
+                        //throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+                            }
+                        });
+                       
+                        installContainer.getItem().setTransferComplete(true);
+                        //consoleWrite("- Success! " ++" sent in "++" minutes at average "++"KB/s", true);
+                        consoleWrite(R.string.get(R.string.successful_console,new String[]{
+                        file.getName(),
+                        minutes,
+                        (file.length()/(System.currentTimeMillis()-start))+""
+                        }), true);
+                        
+                        //return true;
+		} 
+                catch(SocketTimeoutException ex){
+                    System.err.println(ex.getMessage());
+                    continue;
+                }
+                catch(IOException e) {
+                        //resetControls();
+                        //e.printStackTrace();
+                        String text=R.string.get(R.string.failed_console,new String[]{((float) getCounter() / 1048576)+"", ((float) file.length() / 1048576)+"", ((((float) getCounter() / 1048576) / ((float) file.length() / 1048576))* 100)+""});
+			new MaterialToast(text).unhide();
+                        consoleWrite(text, true);
+                        
+                        Platform.runLater(new Runnable(){
+                            @Override
+                            public void run() {
+                                //speedText.setText(size+"MB sent successfully in "+minutes+" minutes at average "+(file.length()/(System.currentTimeMillis()-start))+"KB/s");
+                                speedText.setText(text);
+                                speedText.setColorCode(MaterialColor.material.RED);
+                                //progressText.setText("100%");
+                                //progressBar.setProgress(1.0f);
+                                //if(deleteCheck.isSelected() ){
+                        
+                                //    queueList.removeItem(container);
+                        
+                                //}
+                                //if(deleteWasSelected){
+                                //    container.setVisible(false);
+                                            //queueList.removeItem(container);
+                                           
+                                //}
+                                
+                        //throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+                            }
+                        });
+                        
+                        
+                        continue;
+		} finally {
+			try {
+                            bis.close();
+				
+				
+			} catch(IOException e) {
+			}
+		}
+                }
+                
+                try{
+                    in.close();
+                                
+                                out.close();
+                                socket.close();
+                }
+                catch(IOException ex){
+                    
+                }
+
+    }
+    private ArrayList<File> showCiaChooser(Stage mainStage){
+        FileChooser fileChooser = new FileChooser();
+        if(lastDir!=null){
+            fileChooser.setInitialDirectory(new File(lastDir));
+        }
+       
+ fileChooser.setTitle(R.string.open_files);
+ fileChooser.getExtensionFilters().addAll(
+         new ExtensionFilter("CIA Files", "*.cia"));
+ 
+ 
+ 
+ 
+ List<File> selectedFiles = null;
+ 
+ try{selectedFiles=fileChooser.showOpenMultipleDialog(mainStage);}
+ catch(IllegalArgumentException ex){
+     fileChooser.setInitialDirectory(new File(System.getProperty("user.dir")));
+     selectedFiles=fileChooser.showOpenMultipleDialog(mainStage);
+ }
+ if(selectedFiles!=null){
+ ArrayList<File> files=new  ArrayList<File>();
+ for(int i=0;i<selectedFiles.size();i++){
+     files.add(selectedFiles.get(i));
+ }
+if(files.size()>0){
+     lastDir=files.get(0).getParent();
+     try {
+         new FieldsFile("config.txt").setValue("lastdir",lastDir);
+     } catch (FileNotFoundException ex) {
+         Logger.getLogger(SocketPunch.class.getName()).log(Level.SEVERE, null, ex);
+     }
+}
+ return files;
+ }
+ return null;
+    }
+    private void addCia(String path){
+        //System.out.println(path+" --- Watch path file");
+        File f=new File(path);
+        if(f.getName().toLowerCase().endsWith(".cia")){
+           
+              System.out.println(f.getName());
+              
+            
+            
+        }
+    }
+    private void openCiaChooser(Stage stage){
+        ArrayList<File> ciaFiles=showCiaChooser(stage);
+                if(ciaFiles!=null){
+                    if(ciaFiles.size()+queueList.size()<=30){
+                        for (File ciaFile : ciaFiles) {
+                            queueList.addItem(new InstallableFile(ciaFile));
+                        }
+                    }
+                    else{
+                        int i=0;
+                        while(queueList.size()<30){
+                            queueList.addItem(new InstallableFile(ciaFiles.get(i)));
+                                    i++;
+                        }
+                        new MaterialToast(R.string.queue_limit,MaterialToast.LENGTH_LONG).unhide();
+                    }
+                    
+                }
+    }
+        public boolean connect(InstallableFile iFile, MaterialProgressBar progressBar, MaterialDisplayText progressText, MaterialDisplayText speedText,MaterialStandardListItem<InstallableFile> container){
 		// Create socket
                 File file=iFile.getFile();
                 Socket socket;
                 DataOutputStream out;
                 BufferedOutputStream bos;
-                PrintStream ps;
+                //PrintStream ps;
                try {
 			socket = new Socket(ipText.getText(), 5000);
                         //socket.setSendBufferSize(bufferSize);
@@ -1011,7 +1538,7 @@ watchThread.start();
                        
 			out = new DataOutputStream(socket.getOutputStream());
                         bos=new BufferedOutputStream(out,bufferSize);
-                                  ps=new PrintStream(bos, false);
+                                  //ps=new PrintStream(bos, false);
                                   
 		}catch(IOException e) {
                         // Only get 1 failed to open socket per file, else just say retrying
@@ -1059,8 +1586,8 @@ watchThread.start();
                         final long start = System.currentTimeMillis();
                         long startTime = System.nanoTime();
 			while((length = bis.read(buffer)) >= 0) {
-				ps.write(buffer, 0, length);
-                                ps.flush();
+				bos.write(buffer, 0, length);
+                                //ps.flush();
                                 //total.set(total.get()+length);
                                 //if(updateCheck.isSelected()){
                                 //    lengthProperty().set(length);
@@ -1183,63 +1710,208 @@ watchThread.start();
 		}
 
     }
-    private ArrayList<File> showCiaChooser(Stage mainStage){
-        FileChooser fileChooser = new FileChooser();
-        if(lastDir!=null){
-            fileChooser.setInitialDirectory(new File(lastDir));
-        }
-       
- fileChooser.setTitle(R.string.open_files);
- fileChooser.getExtensionFilters().addAll(
-         new ExtensionFilter("CIA Files", "*.cia"));
- List<File> selectedFiles = fileChooser.showOpenMultipleDialog(mainStage);
- if(selectedFiles!=null){
- ArrayList<File> files=new  ArrayList<File>();
- for(int i=0;i<selectedFiles.size();i++){
-     files.add(selectedFiles.get(i));
- }
-if(files.size()>0){
-     lastDir=files.get(0).getParent();
-     try {
-         new FieldsFile("config.txt").setValue("lastdir",lastDir);
-     } catch (FileNotFoundException ex) {
-         Logger.getLogger(SocketPunch.class.getName()).log(Level.SEVERE, null, ex);
-     }
-}
- return files;
- }
- return null;
-    }
-    private void addCia(String path){
-        //System.out.println(path+" --- Watch path file");
-        File f=new File(path);
-        if(f.getName().toLowerCase().endsWith(".cia")){
-           
-              System.out.println(f.getName());
-              
-            
-            
-        }
-    }
-    private void openCiaChooser(Stage stage){
-        ArrayList<File> ciaFiles=showCiaChooser(stage);
-                if(ciaFiles!=null){
-                    if(ciaFiles.size()+queueList.size()<=30){
-                        for (File ciaFile : ciaFiles) {
-                            queueList.addItem(new InstallableFile(ciaFile));
-                        }
+        private boolean startStreamingLegacy(){
+        boolean connectStatus;
+        //Socket socket=null;
+        //DataOutputStream out=null;
+        
+                
+                 
+        MaterialStandardListItem<InstallableFile> installContainer=hasInstallableFilesUncomplete(queueList);
+        
+        String fileName=(installContainer.getItem().getFile().getName());
+        String lastFileName=installContainer.getItem().getFile().getName();
+        int lap=0;
+        while(installContainer!=null) {
+                    if(lap>0 && fileName.equals(lastFileName) && failCount<getTimeoutVal()-1){
+                        
+                        failCount++;
+                        
                     }
-                    else{
-                        int i=0;
-                        while(queueList.size()<30){
-                            queueList.addItem(new InstallableFile(ciaFiles.get(i)));
-                                    i++;
-                        }
-                        new MaterialToast(R.string.queue_limit,MaterialToast.LENGTH_LONG).unhide();
+                    else if(lap>0){
+                        lastFileName=fileName;
+                        failCount=0;
                     }
+                    //InstallableFile item = queueList.getItem(i);
+                    InstallableFile item=installContainer.getItem();
                     
+                    //queueList.setSelectedIndex(i);
+                    
+                    connectStatus = connect(item,(MaterialProgressBar)installContainer.lookup("#progreso"),(MaterialDisplayText)installContainer.lookup("#progresoTexto"),(MaterialDisplayText)installContainer.lookup("#velocidadTexto"),installContainer);
+                    
+                    installContainer=hasInstallableFilesUncomplete(queueList);
+                    lap++;
+                    if(installContainer!=null){
+                        fileName=installContainer.getItem().getFile().getName();
+                    }
+//out.flush();      
+                    if(failCount>=getTimeoutVal()-1){
+                            break;
+                        }
+                    /*if(!connectStatus && autotryChk.isSelected()){
+                        i--;
+                    }else if(!connectStatus && failCount < getTimeoutVal() - 1){
+                        // Lazy way to retry file, but since there is no real way
+                        // to tell why it errored we will try set times each file
+                        i--;
+                        failCount++;
+                    } else {
+                        failCount = 0;
+                    }*/
                 }
+                failCount=0;
+           
+                 return true;
     }
+        
+        private void legacySendFiles(){
+               //for (int i = 0; i < queueList.size(); i++) {
+                    //InstallableFile item = queueList.getItem(i);
+                    //MaterialStandardListItem<InstallableFile> itemContainer=queueList.getItemBox(i);
+                    
+                    //queueList.setSelectedIndex(i);
+                    //MaterialProgressBar progreso=(MaterialProgressBar)itemContainer.lookup("#progreso");
+                    //MaterialDisplayText progresoTexto=(MaterialDisplayText)itemContainer.lookup("#progresoTexto");
+                    //MaterialDisplayText velocidadTexto=(MaterialDisplayText)itemContainer.lookup("#velocidadTexto");
+                     //String formattedTotal=new DecimalFormat("0.00").format((float)     item.getFile().length() / 1048576);
+                    //velocidadTexto.setText(formattedTotal+"MB");
+                    //progreso.setProgress(0.0f);
+                    //progresoTexto.setText("0%");
+                    //}
+                    consoleWrite(R.string.sending_info,true);
+                    new MaterialToast(R.string.you_punched).unhide();
+                
+               
+                        
+                BackgroundTask task=new BackgroundTask() {
+                    @Override
+                    public Object onAction() {
+                        if(!startedSending){
+                // Set flag to true so we don't get multiple connects
+                startedSending = true;
+                failCount = 0;
+                boolean connectStatus;
+                // For each file in queue
+                Socket socket;
+		DataOutputStream out;
+                
+                 boolean started=startStreamingLegacy();
+                 while(!started){
+                     startStreamingLegacy();
+                 }
+                // Set flag false so a new send queue can be init
+                startedSending = false;
+                consoleWrite(R.string.queue_finished, true);
+                Platform.runLater(new Runnable(){
+                    @Override
+                    public void run() {
+                         new MaterialToast(R.string.queue_finished).unhide();
+                        //throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+                    }
+                });
+               
+            } else {
+                consoleWrite(R.string.transfer_in_progress, true);
+                Platform.runLater(new Runnable(){
+                    @Override
+                    public void run() {
+                         new MaterialToast(R.string.transfer_in_progress).unhide();
+                        //throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+                    }
+                });
+            }
+                        return null;
+                        //throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+                    }
+
+                    @Override
+                    public void onSucceed(Object valor) {
+                        //throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+                    }
+                };
+                /*Thread thread = new Thread("Connect") {
+                    
+        public void run(){
+            
+        }
+   };*/
+                task.play();
+        }
+        private void newSendFiles(){
+            //for (int i = 0; i < queueList.size(); i++) {
+                    //InstallableFile item = queueList.getItem(i);
+                    //MaterialStandardListItem<InstallableFile> itemContainer=queueList.getItemBox(i);
+                    
+                    //queueList.setSelectedIndex(i);
+                    //MaterialProgressBar progreso=(MaterialProgressBar)itemContainer.lookup("#progreso");
+                    //MaterialDisplayText progresoTexto=(MaterialDisplayText)itemContainer.lookup("#progresoTexto");
+                    //MaterialDisplayText velocidadTexto=(MaterialDisplayText)itemContainer.lookup("#velocidadTexto");
+                     //String formattedTotal=new DecimalFormat("0.00").format((float)     item.getFile().length() / 1048576);
+                    //velocidadTexto.setText(formattedTotal+"MB");
+                    //progreso.setProgress(0.0f);
+                    //progresoTexto.setText("0%");
+                    //}
+                    consoleWrite(R.string.sending_info,true);
+                    new MaterialToast(R.string.you_punched).unhide();
+                
+               
+                        
+                BackgroundTask task=new BackgroundTask() {
+                    @Override
+                    public Object onAction() {
+                //        if(!startedSending){
+                // Set flag to true so we don't get multiple connects
+                //startedSending = true;
+                failCount = 0;
+                //oolean connectStatus;
+                // For each file in queue
+                //Socket socket;
+		//DataOutputStream out;
+                
+                 startSteveStream();
+                 //while(!started){
+                 //    startStreaming();
+                 //}
+                // Set flag false so a new send queue can be init
+               // startedSending = false;
+                //consoleWrite(R.string.queue_finished, true);
+                /*Platform.runLater(new Runnable(){
+                    @Override
+                    public void run() {
+                         new MaterialToast(R.string.queue_finished).unhide();
+                        //throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+                    }
+                });*/
+               
+            /*} else {
+                consoleWrite(R.string.transfer_in_progress, true);
+                Platform.runLater(new Runnable(){
+                    @Override
+                    public void run() {
+                         new MaterialToast(R.string.transfer_in_progress).unhide();
+                        //throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+                    }
+                });
+            }*/
+                        return null;
+                        //throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+                    }
+
+                    @Override
+                    public void onSucceed(Object valor) {
+                        //throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+                    }
+                };
+                /*Thread thread = new Thread("Connect") {
+                    
+        public void run(){
+            
+        }
+   };*/
+                task.play();
+        }
+        private RadioButton legacyRadio, newRadio;
+        private MaterialStandardDialog updateDialog;
     @SuppressWarnings("unchecked")
     // <editor-fold defaultstate="collapsed" desc="Generated Code">//GEN-BEGIN:initComponents
     private Pane initComponents(Stage stage) {
@@ -1366,6 +2038,91 @@ if(files.size()>0){
         
         //box.getChildren().add(jLabel1);
         ipText.setPadding(new Insets(0,0,12,0));
+        
+       ToggleGroup group = new ToggleGroup();
+       String selectedRadio=null; 
+       try {
+            selectedRadio=new FieldsFile("config.txt").getValue("transfer_mode","new");
+        } catch (FileNotFoundException ex) {
+            Logger.getLogger(SocketPunch.class.getName()).log(Level.SEVERE, null, ex);
+        }
+
+       
+legacyRadio = new RadioButton(R.string.legacy_mode);
+legacyRadio.setToggleGroup(group);
+if(selectedRadio.equals("legacy")){
+    legacyRadio.setSelected(true);
+    consoleWrite(R.string.legacy_mode,true);
+    
+}
+
+newRadio = new RadioButton(R.string.newest_mode);
+if(selectedRadio.equals("new")){
+    newRadio.setSelected(true);
+    
+    consoleWrite(R.string.newest_mode,true);
+}
+
+legacyRadio.setOnAction(new EventHandler<ActionEvent>(){
+            @Override
+            public void handle(ActionEvent event) {
+                try {
+                    FieldsFile confFile=new FieldsFile("config.txt");
+                    if(legacyRadio.isSelected()){
+                        confFile.setValue("transfer_mode","legacy");
+                        
+                    consoleWrite(R.string.legacy_mode,true);
+                    }
+                    else if(newRadio.isSelected()){
+                        confFile.setValue("transfer_mode","new");
+                        
+    consoleWrite(R.string.newest_mode,true);
+                    }
+                    //throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+                } catch (FileNotFoundException ex) {
+                    Logger.getLogger(SocketPunch.class.getName()).log(Level.SEVERE, null, ex);
+                }
+            }
+        });
+    newRadio.setOnAction(new EventHandler<ActionEvent>(){
+            @Override
+            public void handle(ActionEvent event) {
+                try {
+                    FieldsFile confFile=new FieldsFile("config.txt");
+                    if(legacyRadio.isSelected()){
+                        confFile.setValue("transfer_mode","legacy");
+                        
+    consoleWrite(R.string.legacy_mode,true);
+                    }
+                    else if(newRadio.isSelected()){
+                        confFile.setValue("transfer_mode","new");
+    consoleWrite(R.string.newest_mode,true);
+                    }
+                    //throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+                } catch (FileNotFoundException ex) {
+                    Logger.getLogger(SocketPunch.class.getName()).log(Level.SEVERE, null, ex);
+                }
+            }
+        });
+    
+
+
+VBox radios=new VBox(legacyRadio, newRadio);
+legacyRadio.getStyleClass().add("material-radio-button");
+newRadio.getStyleClass().add("material-radio-button");
+
+radios.setAlignment(Pos.CENTER);
+legacyRadio.setPadding(new Insets(0,8,8,8));
+newRadio.setPadding(new Insets(8));
+radios.setPadding(new Insets(0,0,12,0));
+new MaterialTooltip(R.string.legacy_compatible,legacyRadio);
+new MaterialTooltip(R.string.newest_compatible,newRadio);
+
+
+layout.addNodeAsDrawerItem(radios);
+
+newRadio.setToggleGroup(group);
+ 
         layout.addNodeAsDrawerItem(new HBox(ipText,timeoutVal));
         updatePercentageCheck=new MaterialCheckBox();
         updatePercentageCheck.setSelected(true);
@@ -1436,7 +2193,7 @@ if(files.size()>0){
             }
         });
         
-        MaterialStandardDialog updateDialog=new MaterialStandardDialog() {
+        updateDialog=new MaterialStandardDialog() {
             @Override
             public void onPressedKey(KeyEvent event) {
                 
@@ -1486,18 +2243,9 @@ if(files.size()>0){
                  //To change body of generated methods, choose Tools | Templates.
             }
         };
-                FlatButton updateButton=new FlatButton(R.string.settings);
+               
                 
-                updateButton.setOnAction(new EventHandler<ActionEvent>(){
-            @Override
-            public void handle(ActionEvent event) {
-                updateDialog.unhide();
-                //throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
-            }
-        });
-                        
-                
-                layout.addNodeAsDrawerItem(updateButton);
+                //layout.addNodeAsDrawerItem(updateButton);
         //layout.addNodeAsDrawerItem(new VBox(updateCheck));
         
         
@@ -1514,10 +2262,12 @@ if(files.size()>0){
         saveLogChk.setText("Save Log (Will be stored in working directory)");
         box.getChildren().add(new HBox(jLabel3,saveLogChk));
         VBox scrollBox=new VBox();
+        
         consoleText.setOnMouseClicked(new EventHandler<MouseEvent>(){
             @Override
             public void handle(MouseEvent event) {
                 getHostServices().showDocument("file:log.txt");
+              
                 //throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
             }
         });
@@ -1570,77 +2320,19 @@ if(files.size()>0){
             public void handle(ActionEvent event) {
                 if(!ipText.getText().trim().equals("")){
                 if(queueList.size()>0){
-                    //for (int i = 0; i < queueList.size(); i++) {
-                    //InstallableFile item = queueList.getItem(i);
-                    //MaterialStandardListItem<InstallableFile> itemContainer=queueList.getItemBox(i);
-                    
-                    //queueList.setSelectedIndex(i);
-                    //MaterialProgressBar progreso=(MaterialProgressBar)itemContainer.lookup("#progreso");
-                    //MaterialDisplayText progresoTexto=(MaterialDisplayText)itemContainer.lookup("#progresoTexto");
-                    //MaterialDisplayText velocidadTexto=(MaterialDisplayText)itemContainer.lookup("#velocidadTexto");
-                     //String formattedTotal=new DecimalFormat("0.00").format((float)     item.getFile().length() / 1048576);
-                    //velocidadTexto.setText(formattedTotal+"MB");
-                    //progreso.setProgress(0.0f);
-                    //progresoTexto.setText("0%");
-                    //}
-                    consoleWrite(R.string.sending_info,true);
-                    new MaterialToast(R.string.you_punched).unhide();
-                
-               
-                        
-                BackgroundTask task=new BackgroundTask() {
-                    @Override
-                    public Object onAction() {
-                        if(!startedSending){
-                // Set flag to true so we don't get multiple connects
-                startedSending = true;
-                failCount = 0;
-                boolean connectStatus;
-                // For each file in queue
-                Socket socket;
-		DataOutputStream out;
-                
-                 boolean started=startStreaming();
-                 while(!started){
-                     startStreaming();
-                 }
-                // Set flag false so a new send queue can be init
-                startedSending = false;
-                consoleWrite(R.string.queue_finished, true);
-                Platform.runLater(new Runnable(){
-                    @Override
-                    public void run() {
-                         new MaterialToast(R.string.queue_finished).unhide();
-                        //throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+                    if(legacyRadio.isSelected()){
+                        legacySendFiles();
                     }
-                });
-               
-            } else {
-                consoleWrite(R.string.transfer_in_progress, true);
-                Platform.runLater(new Runnable(){
-                    @Override
-                    public void run() {
-                         new MaterialToast(R.string.transfer_in_progress).unhide();
-                        //throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+                    else if(newRadio.isSelected()){
+                        newSendFiles();
                     }
-                });
-            }
-                        return null;
-                        //throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+                   /* if(legacy){
+                        legacySendFiles();
                     }
-
-                    @Override
-                    public void onSucceed(Object valor) {
-                        //throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
-                    }
-                };
-                /*Thread thread = new Thread("Connect") {
-                    
-        public void run(){
-            
-        }
-   };*/
-                task.play();
+                    else{
+                        newSendFiles();
+                    }*/
+                    //send files
                  }
                 else{
                     new MaterialToast(R.string.open_first).unhide();
@@ -1654,7 +2346,7 @@ if(files.size()>0){
             
         };
     }//GEN-LAST:event_startButtActionPerformed
-    private boolean startStreaming(){
+    private boolean startStreamingOld(){
         boolean connectStatus;
         //Socket socket=null;
         //DataOutputStream out=null;
@@ -1681,7 +2373,7 @@ if(files.size()>0){
                     
                     //queueList.setSelectedIndex(i);
                     
-                    connectStatus = connect(item,(MaterialProgressBar)installContainer.lookup("#progreso"),(MaterialDisplayText)installContainer.lookup("#progresoTexto"),(MaterialDisplayText)installContainer.lookup("#velocidadTexto"),installContainer);
+                   // connectStatus = connect(item,(MaterialProgressBar)installContainer.lookup("#progreso"),(MaterialDisplayText)installContainer.lookup("#progresoTexto"),(MaterialDisplayText)installContainer.lookup("#velocidadTexto"),installContainer);
                     
                     installContainer=hasInstallableFilesUncomplete(queueList);
                     lap++;
@@ -1707,7 +2399,7 @@ if(files.size()>0){
            
                  return true;
     }
-    private MaterialStandardListItem<InstallableFile> hasInstallableFilesUncomplete(MaterialStandardList<InstallableFile> list){
+    private MaterialStandardListItem<InstallableFile> hasInstallableFilesUncomplete(MaterialFlowList<InstallableFile> list){
         for(int i=0;i<list.size();i++){
             if(!list.getItem(i).isTransferComplete()){
                 return list.getItemBox(i);
@@ -1732,6 +2424,8 @@ if(files.size()>0){
     private double orgTranslateX=0, orgTranslateY=0;
     private int pressedIndex=-1;
     private double itemHeight=0;
+    private double itemWidth=0;
+    
     
     private int getIndexOfItem(MaterialStandardListItem<InstallableFile> item){
         for(int i=0;i<queueList.size();i++){
@@ -1751,6 +2445,8 @@ if(files.size()>0){
             orgTranslateY=((MaterialStandardListItem<InstallableFile>)event.getSource()).getTranslateY();
             pressedIndex=getIndexOfItem(((MaterialStandardListItem<InstallableFile>)event.getSource()));
             itemHeight=(((MaterialStandardListItem<InstallableFile>)event.getSource()).getHeight());
+            itemWidth=(((MaterialStandardListItem<InstallableFile>)event.getSource()).getWidth());
+            
             //System.out.println(orgTranslateY+" y-move");
             //System.out.println(((MaterialStandardListItem<InstallableFile>)event.getSource()).getLayoutY()+" y-layout");
             //throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
@@ -1780,9 +2476,9 @@ if(files.size()>0){
         Timeline timeline=new Timeline();
 
                         KeyValue kv1=new KeyValue(pressedItem
-                        .translateXProperty(),0);
+                        .translateXProperty(),cycleItem.getLayoutX()-pressedItem.getLayoutX());
                         KeyValue kv2=new KeyValue(pressedItem
-                        .translateYProperty(),(indexToGo-pressedIndex)*itemHeight);
+                        .translateYProperty(),cycleItem.getLayoutY()-pressedItem.getLayoutY());
                         KeyFrame kf=new KeyFrame(Duration.millis(130),kv2,kv1);
                         timeline.getKeyFrames().add(kf);
                         timeline.setOnFinished(new EventHandler<ActionEvent>(){
@@ -1810,9 +2506,11 @@ if(files.size()>0){
     private void moveReplaced(MaterialStandardListItem<InstallableFile> cycleItem,MaterialStandardListItem<InstallableFile> releasedItem, int myIndex){
         Timeline timeline=new Timeline();
 
+        KeyValue kv1=new KeyValue(cycleItem
+                        .translateXProperty(),releasedItem.getLayoutX()-cycleItem.getLayoutX());
                         KeyValue kv2=new KeyValue(cycleItem
-                        .translateYProperty(),(pressedIndex-myIndex)*itemHeight);
-                        KeyFrame kf=new KeyFrame(Duration.millis(250),kv2);
+                        .translateYProperty(),releasedItem.getLayoutY()-cycleItem.getLayoutY());
+                        KeyFrame kf=new KeyFrame(Duration.millis(250),kv2,kv1);
                         timeline.getKeyFrames().add(kf);
                         timeline.setOnFinished(new EventHandler<ActionEvent>(){
                                 @Override
@@ -1848,11 +2546,13 @@ if(files.size()>0){
             boolean replace=false;
             //System.out.println(releasedItem.getTranslateY()+" y-released");
                 double newLayoutY=releasedItem.getLayoutY()+releasedItem.getTranslateY();
-                    
+                    double newLayoutX=releasedItem.getLayoutX()+releasedItem.getTranslateX();
+                
             for(int i=0;i<queueList.size();i++){
                 if(!queueList.getItemBox(i).equals(releasedItem)){
                     MaterialStandardListItem<InstallableFile> cycleItem=queueList.getItemBox(i);
-                    if(newLayoutY<cycleItem.getLayoutY()+33 && newLayoutY>cycleItem.getLayoutY()-33){
+                    if((newLayoutY<cycleItem.getLayoutY()+33 && newLayoutY>cycleItem.getLayoutY()-33) &&
+                            (newLayoutX<cycleItem.getLayoutX()+33 && newLayoutX>cycleItem.getLayoutX()-33)){
                             replace=true;
                             moveReplaced(cycleItem,releasedItem,i);
                             
